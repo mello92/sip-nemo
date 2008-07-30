@@ -17,6 +17,7 @@ Simulator instproc create-wireless-node args {
         Network {
 		    set ragent [$self create-network-agent $node]
 	    }
+}
 }}}
 
 nemo/ns-mipv6.tcl
@@ -59,6 +60,17 @@ Simulator instproc create-network-agent { node } {
 	$node set ragent_ $ragent
 
 	return $ragent
+}
+}}}
+
+tcl/lib/ns-lib.tcl
+{{{
+Simulator instproc get-nodetype {} {
+	$self instvar addressType_ routingAgent_ wiredRouting_ mipv6_ mipagent_
+        if { [info exists mipv6_] && $mipv6_ == 1 } {
+		set val $mipagent_
+		#puts "$val"
+	}
 }
 }}}
 || table || cells ||
