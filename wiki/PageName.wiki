@@ -24,61 +24,7 @@ Simulator instproc create-wireless-node args {
 }
 }}}
 
-nemo/ns-mipv6.tcl
-{{{
-Simulator instproc create-network-agent { node } {
-	set nodetype_ [$self get-nodetype]
-
-	#puts "create-network-agent in ns-mipv6.tcl"
-
-	if { $nodetype_ == "BS" } {
-		set ragent [new Agent/NetworkRouting/NetworkBS]
-		$ragent mip-agent [$node set regagent_]
-	} else {
-	if { $nodetype_ == "MN" } {
-		set ragent [new Agent/NetworkRouting/NetworkMN]
-		$ragent mip-agent [$node set regagent_]
-		$ragent decap-port [Simulator set DECAP_PORT]
-	} else {
-	if { $nodetype_ == "MR" } {
-		set ragent [new Agent/NetworkRouting/NetworkMR]
-		$ragent mip-agent [$node set regagent_]
-		$ragent decap-port [Simulator set DECAP_PORT]
-	} else {
-	if { $nodetype_ == "LFN" } {
-		set ragent [new Agent/NetworkRouting/NetworkLFN]
-		$ragent mip-agent [$node set regagent_]
-		$ragent decap-port [Simulator set DECAP_PORT]
-	} else {
-		puts "Wrong Routing Agent"
-	}}}}
-
-	set addr [$node node-addr]
-	$ragent addr $addr
-	$ragent node $node
-
-	if [[Simulator instance] set mipv6_] {
-		$ragent port-dmux [$node set dmux_]
-	}
-
-	$node set ragent_ $ragent
-
-	return $ragent
-}
-}}}
-
-tcl/lib/ns-lib.tcl
-{{{
-Simulator instproc get-nodetype {} {
-	$self instvar addressType_ routingAgent_ wiredRouting_ mipv6_ mipagent_
-        if { [info exists mipv6_] && $mipv6_ == 1 } {
-		set val $mipagent_
-		#puts "$val"
-	}
-}
-}}}
-
-ns-mipv6.tcl
+tcl/nemo/ns-mipv6.tcl
 {{{
 Simulator instproc MIPv6 {val} {
 	$self instvar mipv6_
@@ -135,6 +81,21 @@ Simulator instproc create-network-agent { node } {
 	return $ragent
 }
 }}}
+
+tcl/lib/ns-lib.tcl
+{{{
+source ../nemo/ns-mipv6.tcl
+source ../nemo/proc-nemo-config.tcl
+
+Simulator instproc get-nodetype {} {
+	$self instvar addressType_ routingAgent_ wiredRouting_ mipv6_ mipagent_
+        if { [info exists mipv6_] && $mipv6_ == 1 } {
+		set val $mipagent_
+		#puts "$val"
+	}
+}
+}}}
+
 
 || table || cells ||
 
