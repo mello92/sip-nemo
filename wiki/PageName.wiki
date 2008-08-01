@@ -77,6 +77,65 @@ Simulator instproc get-nodetype {} {
 	}
 }
 }}}
+
+ns-mipv6.tcl
+{{{
+Simulator instproc MIPv6 {val} {
+	$self instvar mipv6_
+	if { $val == "ON" } {
+		$self set mipv6_ 1
+	} else {
+		$self set mipv6_ 0
+	}
+}
+
+Simulator instproc MIPAgent {val} {
+	$self instvar mipagent_
+	$self set mipagent_ $val
+	#puts "$mipagent_"
+}
+
+Simulator instproc create-network-agent { node } {
+	set nodetype_ [$self get-nodetype]
+
+	#puts "create-network-agent in ns-mipv6.tcl"
+
+	if { $nodetype_ == "BS" } {
+		set ragent [new Agent/NetworkRouting/NetworkBS]
+		$ragent mip-agent [$node set regagent_]
+	} else {
+	if { $nodetype_ == "MN" } {
+		set ragent [new Agent/NetworkRouting/NetworkMN]
+		$ragent mip-agent [$node set regagent_]
+		$ragent decap-port [Simulator set DECAP_PORT]
+	} else {
+	if { $nodetype_ == "MR" } {
+		set ragent [new Agent/NetworkRouting/NetworkMR]
+		$ragent mip-agent [$node set regagent_]
+		$ragent decap-port [Simulator set DECAP_PORT]
+	} else {
+	if { $nodetype_ == "LFN" } {
+		set ragent [new Agent/NetworkRouting/NetworkLFN]
+		$ragent mip-agent [$node set regagent_]
+		$ragent decap-port [Simulator set DECAP_PORT]
+	} else {
+		puts "Wrong Routing Agent"
+	}}}}
+
+	set addr [$node node-addr]
+	$ragent addr $addr
+	$ragent node $node
+
+	if [[Simulator instance] set mipv6_] {
+		$ragent port-dmux [$node set dmux_]
+	}
+
+	$node set ragent_ $ragent
+
+	return $ragent
+}
+}}}
+
 || table || cells ||
 
 Add your content here.  Format your content with:
