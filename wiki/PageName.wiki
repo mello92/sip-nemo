@@ -11,6 +11,8 @@ $ns node-config
 	-MIPv6 ON/OFF
 	-MIPAgent BS/CN/MR/LFN/VMN
 
+===Heading3===
+
 tcl/lib/ns-lib.tcl
 {{{
 Simulator instproc create-wireless-node args {
