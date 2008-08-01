@@ -6,7 +6,7 @@ Add your content here.
 
 
 = Details =
-----
+
 $ns node-config
 	-adhocRouting Network
 
