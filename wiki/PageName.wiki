@@ -96,6 +96,39 @@ Simulator instproc get-nodetype {} {
 }
 }}}
 
+set ragent [new Agent/NetworkRouting/NetworkBS]
+$ragent mip-agent [$node set regagent_]
+
+tcl/lib/ns-node.tcl
+{{{
+Node instproc mk-default-classifier {} {
+	if [[Simulator instance] set mipv6_] {
+		$self makemip-NewHier
+	}
+}
+}}}
+
+tcl/nemo/ns-mipv6.tcl
+{{{
+Node instproc makemip-NewHier {} {
+	$self instvar regagent_ encap_ decap_ agents_ id_
+
+	#puts "makemip-NewHier in ns-mipv6.tcl"
+
+	set dmux [new Classifier/Port/Reserve]
+	$dmux set mask_ 0x7fffffff
+	$dmux set shift_ 0
+	$self install-demux $dmux
+   
+	$self attach-redirect
+
+	set mipagent_ [[Simulator instance] set mipagent_]
+	set regagent_ [new Agent/$mipagent_ $self]
+	$self attach $regagent_ [Simulator set MIPv6_PORT]
+}
+}}}
+
+
 
 || table || cells ||
 
