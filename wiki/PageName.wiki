@@ -114,6 +114,8 @@ Node instproc mk-default-classifier {} {
 
 tcl/nemo/ns-mipv6.tcl
 {{{
+Simulator set MIPv6_PORT	0
+
 Node instproc makemip-NewHier {} {
 	$self instvar regagent_ encap_ decap_ agents_ id_
 
@@ -130,8 +132,46 @@ Node instproc makemip-NewHier {} {
 	set regagent_ [new Agent/$mipagent_ $self]
 	$self attach $regagent_ [Simulator set MIPv6_PORT]
 }
+
+Node/MobileNode instproc makemip-NewBS {} {
+	#puts "makemip-NewBS in ns-mipv6.tcl"
+	$self attach-decapsulator
+}
+
+Node/MobileNode instproc attach-decapsulator {} {
+	$self instvar decap_ dmux_ agents_ regagent_
+
+	#puts "attach-decapsulator in ns-mipv6.tcl"
+
+	set decap_ [new Classifier/Addr/MIPDecapsulator]
+	lappend agents_ $decap_
+
+	#set test [$dmux_ info class]
+	#puts "$test"
+	$dmux_ install [Simulator set DECAP_PORT] $decap_
+	$decap_ defaulttarget [$self entry]
+}
 }}}
 
+/nemo/ipv6.h
+{{{
+class NetworkRouting : public Agent
+{
+};
+class NetworkBS : public NetworkRouting
+{
+};
+}}}
+
+/nemo/mipv6.h
+{{{
+class MIPv6Agent : public Agent
+{
+};
+class BSAgent : public MIPv6Agent
+{
+};
+}}}
 
 
 || table || cells ||
