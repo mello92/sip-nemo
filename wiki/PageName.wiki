@@ -7,12 +7,12 @@ Add your content here.
 
 = Details =
 
-`$ns node-config`
-`	-adhocRouting Network`
+$ns node-config
+	-adhocRouting Network
 
-`	-MIPv6 ON/OFF`
+	-MIPv6 ON/OFF
 
-`	-MIPAgent BS/CN/MR/LFN/VMN`
+	-MIPAgent BS/CN/MR/LFN/VMN
 
 ----
 
