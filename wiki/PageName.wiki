@@ -96,8 +96,9 @@ Simulator instproc get-nodetype {} {
 }
 }}}
 
-set ragent [new Agent/NetworkRouting/NetworkBS]
-$ragent mip-agent [$node set regagent_]
+==set ragent [new Agent/NetworkRouting/NetworkBS]==
+
+==$ragent mip-agent [$node set regagent_]==
 
 tcl/lib/ns-node.tcl
 {{{
