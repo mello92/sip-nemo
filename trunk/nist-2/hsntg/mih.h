@@ -46,6 +46,10 @@
 //class Mac;
 #include "mac.h"
 
+//----------------sem start------------------//
+//#include "../nemo/nemo.h"
+//----------------sem end------------------//
+
 /*
  * Define Media Independent Handover Protocol
  */
@@ -691,6 +695,8 @@ public:
 /*
  * Define the MIH Function agent
  */
+//class NEMOAgent;
+
 class MIHAgent : public Agent {
   friend class GetStatusTimer;
   friend class MIHRequestTimer;
@@ -898,6 +904,10 @@ class MIHAgent : public Agent {
   map <int, mih_pending_req*> pending_req_;   //list of pending request messages
   vector <MIHUserAgent *> management_users_; //list of MIH User to receive System Management messages
   vector <MIHScan *> scan_req_;
+  
+  //----------------sem start------------------//
+//  NEMOAgent *nemo_;
+  //----------------sem end------------------//
 
   //processing events
   /**
