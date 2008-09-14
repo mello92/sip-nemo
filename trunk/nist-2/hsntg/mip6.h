@@ -69,6 +69,10 @@
 #define BREQ_SIZE		DEST_HDR_PREFIX_SIZE + BU_REQ_OPT_SIZE
 
 typedef enum {
+	MN, MN_HA, MR, MR_HA, CN
+} Mipv6NodeType;
+
+typedef enum {
 	BREQ, BU, BACK, BU_HA, BU_BS, BU_CN, BU_RP, BU_MN,
 	BS_ADS, BS_SOL, BU_MR
 } Mipv6RegType;
@@ -96,6 +100,10 @@ public:
 	int nbbu;
 	Mipv6RegType type;
 	char info[10];
+	
+	int nemo_prefix_;
+	Node *eface_;
+	Node *iface_;
 
 	BUEntry(int address, Mipv6RegType t, int f)
 	{
@@ -109,6 +117,10 @@ public:
 		active_expire = 0;
 		nbbu = 0;
 		type = t;
+		
+		nemo_prefix_ = -1;
+		eface_ = NULL;
+		iface_ = NULL;
 
 		switch ( t )
 		{
@@ -126,7 +138,41 @@ public:
 			strcpy(info, "CN"); break;
 		}
 	}
+	
+	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, Node *eface, Node *iface)
+	{
+		addr = address;
+		haddr = home_addr;
+		caddr = -1;
+		seqno = -1;
+		flag = f;
+		lftm = 0;
+		time = -1;
+		active_expire = 0;
+		nbbu = 0;
+		type = t;
+		
+		nemo_prefix_ = nemo_prefix;
+		eface_ = eface;
+		iface_ = iface;
 
+		switch ( t )
+		{
+		case BU_HA:
+			strcpy(info, "HA"); break;
+		case BU_BS:
+			strcpy(info, "BS"); break;
+		case BU_MN:
+			strcpy(info, "MN"); break;
+		case BS_ADS:
+			strcpy(info, "BS"); break;
+		case BU_RP:
+			strcpy(info, "RP"); break;
+		default:
+			strcpy(info, "CN"); break;
+		}
+	}
+	
 	~BUEntry() {}
 
 	inline void insert_entry(struct bu_entry* head)
@@ -147,6 +193,10 @@ public:
 		nbbu++;
 		flag = ON;
 	}
+	
+	inline Node* eface() { return eface_;}
+	inline Node* iface() { return iface_;}
+	inline int& prefix() { return nemo_prefix_;} 
 
 	inline double expire() { return (time + lftm); }
 	inline double& lifetime() { return lftm; }
@@ -396,16 +446,21 @@ class MIPV6Agent : public IFMNGMTAgent {
 		
 		void mn_registration(Packet* p);
 		void send_bu_ack(Packet* p);
+		void send_bu_ack(Packet* p, Node* iface);
 		void recv_bu_ack(Packet* p);
 		void recv_nemo(Packet* p);
 		
 		void add_tunnel(Packet* p);
 		void delete_tunnel(Packet* p);
 		  
+		Node*  get_iface_node_by_daddr(int prefix);
+		
 		int hoa_;	//	home address
 		int ha_;		//	home aget address
 		int coa_;	//	care-of address
 		int nemo_prefix_;	// nemo prefix
+		
+		Mipv6NodeType node_type_;
 
 		UdpmysipAgent* udpmysip_;
 		Node* iface_node_;

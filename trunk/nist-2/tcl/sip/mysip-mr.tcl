@@ -131,6 +131,8 @@ lappend tmp 1                                      ;# MR
 
 AddrParams set nodes_num_ $tmp
 
+array set node_type {MN 0 MN_HA 1 MR 2 MR_HA 3 CN 4}
+
 # configure UMTS. 
 # Note: The UMTS configuration MUST be done first otherwise it does not work
 #       furthermore, the node creation in UMTS MUST be as follow
@@ -608,8 +610,12 @@ puts " time [expr $moveStart+80]"
 #$ns at [expr $moveStart+15] "$mysipapp_r registration 3.0.1"
 #--------------- sem test end
 
-$handover set-ha 5.0.0 5.0.2
-$handover set-nemo-prefix 6.0.0
+#$handover set-ha 5.0.0 5.0.2
+#$handover set-nemo-prefix 6.0.0
+
+$handover set-ha 5.0.0 5.0.2 6.0.0 $iface1 $nemo
+
+$handover set-node-type $node_type(MR)
 
 #$ns at [expr $moveStart+20] "$mysipapp_r send_invite 1000 1.0.0"
 
