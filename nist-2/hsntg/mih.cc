@@ -123,12 +123,21 @@ int MIHAgent::command(int argc, const char*const* argv)
     if (strcmp(argv[1], "add-mac")==0) {
       Mac* mac = (Mac*) TclObject::lookup(argv[2]);
       if (mac){
-	ifaces_.push_back (new MIHInterfaceInfo (mac));
-	debug ("At %f in %s MIH is adding mac %d\n", NOW, MYNUM, mac->addr());
-	return TCL_OK;
-      }
-      return TCL_ERROR;
-    }
+				ifaces_.push_back (new MIHInterfaceInfo (mac));
+				debug ("At %f in %s MIH is adding mac %d\n", NOW, MYNUM, mac->addr());
+				return TCL_OK;
+			      }
+		      return TCL_ERROR;
+		    }
+    
+    //----------------sem start------------------//
+//    if(strcmp(argv[1], "connect-nemo")==0) {
+//    			nemo_ = (NEMOAgent *)TclObject::lookup(argv[2]);
+//    			if(nemo_)
+//    				return TCL_OK;
+//    			return TCL_ERROR;
+//    		}
+    //----------------sem end------------------//
   }
  
   return (Agent::command(argc, argv));
@@ -1675,6 +1684,10 @@ void MIHAgent::recv_cap_disc_req (Packet* p)
   debug("At %f in %s MIH Agent sending capability discovery response\n", NOW, MYNUM);
   //fprintf(stderr, "sending capability response\n");
   
+  //----------------sem start------------------//
+//  if(nemo_!=NULL)
+//    	nemo_->send(p_res,0);
+  //----------------sem end------------------//
   
   send(p_res, 0);
 

@@ -63,7 +63,9 @@ Agent/ND set minRtrAdvInterval_ 2
 Mac/802_11 set bss_timeout_ 5
 Mac/802_11 set pr_limit_ 1.2 ;#for link going down
 
+#
 Mac/802_11 set client_lifetime_ 7.0
+#
 
 #wireless routing algorithm update frequency (in seconds)
 Agent/DSDV set perup_ 8
@@ -76,6 +78,8 @@ Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set debug_ 1
 Agent/MIHUser/IFMNGMT/MIPV6	set debug_ 1
 Mac/802_11 set debug_ 0
 #Mac/802_11 set debug_ 1
+
+Agent/NEMO set debug_ 1
 
 #Rate at which the nodes start moving
 set moveStart 10
@@ -383,7 +387,7 @@ set nd_mn [$iface1 install-nd]
 
 set nd_nemo [$nemo install-nd]
 $nd_nemo set-router TRUE
-$nd_nemo router-lifetime 3
+$nd_nemo router-lifetime 18
 $ns at 1 "$nd_nemo start-ra"
 
 #set ifmgmt_nemo [$nemo install-default-ifmanager]
@@ -397,17 +401,23 @@ $ns at 1 "$nd_nemo start-ra"
 set nd_nemo_node [$nemo_node install-nd]
 
 
-set nemo_node_handover [new Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1]
-$mnNode install-ifmanager $nemo_node_handover
+#set nemo_node_handover [new Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1]
+#$mnNode install-ifmanager $nemo_node_handover
+#
+#$nd_nemo_node set-ifmanager $nemo_node_handover
+#
+#set nemo_node_mih [$mnNode install-mih]
+#
+#$nemo_node_handover connect-mih $nemo_node_mih ;#create connection between MIH and iface management
+#$nemo_node_handover nd_mac $nd_nemo_node [$nemo_node set mac_(0)]
+#
+#$nemo_node_handover set-ha 5.0.0 5.0.3
 
-$nd_nemo_node set-ifmanager $nemo_node_handover
 
-set nemo_node_mih [$mnNode install-mih]
+set mipv6_mn [$mnNode install-default-ifmanager]
+$mipv6_mn set-ha 5.0.0 5.0.1
 
-$nemo_node_handover connect-mih $nemo_node_mih ;#create connection between MIH and iface management
-$nemo_node_handover nd_mac $nd_nemo_node [$nemo_node set mac_(0)]
-
-$nemo_node_handover set-ha 5.0.0 5.0.3
+$nd_nemo_node set-ifmanager $mipv6_mn
 
 #set ifmgmt_nemo [$nemo install-default-ifmanager]
 #set ifmgmt_nemo_node [$nemo install-default-ifmanager]
@@ -431,6 +441,13 @@ set mih [$multiFaceNode install-mih]
 
 $handover connect-mih $mih ;#create connection between MIH and iface management
 $handover nd_mac $nd_mn [$iface1 set mac_(0)]
+
+
+set mr_nemo [$multiFaceNode install-nemo]
+$mr_nemo connect-iface $nemo
+
+#$handover connect-nemo $mr_nemo
+
 
 #$router0 install-default-ifmanager
 #$router2 install-default-ifmanager
@@ -503,13 +520,13 @@ $tmp2 mih $mih
 $mih add-mac $tmp2
 
 
-set tmp2 [$nemo set mac_(0)]
-$tmp2 mih $mih
-$mih add-mac $tmp2
+#set tmp2 [$nemo set mac_(0)]
+#$tmp2 mih $mih
+#$mih add-mac $tmp2
 
-set tmp2 [$nemo_node set mac_(0)]
-$tmp2 mih $nemo_node_mih
-$nemo_node_mih add-mac $tmp2
+#set tmp2 [$nemo_node set mac_(0)]
+#$tmp2 mih $nemo_node_mih
+#$nemo_node_mih add-mac $tmp2
 
 
 
@@ -613,7 +630,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$handover set-ha 5.0.0 5.0.2 6.0.0 $iface1 $nemo
+$handover set-ha 5.0.0 5.0.2 6.0.0 $iface1 $mr_nemo
 
 $handover set-node-type $node_type(MR)
 

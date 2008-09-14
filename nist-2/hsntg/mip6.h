@@ -35,7 +35,8 @@
 #include <vector>
 
 //----------------sem start------------------//
-#include "../sip/udp-mysip.h"
+#include "udp-mysip.h"
+#include "nemo.h"
 //----------------sem end------------------//
 	
 #define MYNUM Address::instance().print_nodeaddr(addr())
@@ -82,6 +83,9 @@ typedef enum {
  2003/9/26 hscho@mmlab.snu.ac.kr
  class Entry;
 ****************************************/
+
+class MEMOAgent;
+
 class BUEntry;
 
 LIST_HEAD(bu_entry, BUEntry);
@@ -103,7 +107,7 @@ public:
 	
 	int nemo_prefix_;
 	Node *eface_;
-	Node *iface_;
+	NEMOAgent *nemo_agent_;
 
 	BUEntry(int address, Mipv6RegType t, int f)
 	{
@@ -120,7 +124,7 @@ public:
 		
 		nemo_prefix_ = -1;
 		eface_ = NULL;
-		iface_ = NULL;
+		nemo_agent_ = NULL;
 
 		switch ( t )
 		{
@@ -139,7 +143,7 @@ public:
 		}
 	}
 	
-	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, Node *eface, Node *iface)
+	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, Node *eface, NEMOAgent *nemo_agent)
 	{
 		addr = address;
 		haddr = home_addr;
@@ -154,7 +158,7 @@ public:
 		
 		nemo_prefix_ = nemo_prefix;
 		eface_ = eface;
-		iface_ = iface;
+		nemo_agent_ = nemo_agent;
 
 		switch ( t )
 		{
@@ -195,8 +199,8 @@ public:
 	}
 	
 	inline Node* eface() { return eface_;}
-	inline Node* iface() { return iface_;}
 	inline int& prefix() { return nemo_prefix_;} 
+	inline NEMOAgent* nemo_agent() { return nemo_agent_;}
 
 	inline double expire() { return (time + lftm); }
 	inline double& lifetime() { return lftm; }
@@ -384,6 +388,7 @@ class FlowRequestTimer;
 
 class UdpmysipAgent;
 
+class NEMOAgent;
 /* 
  * MIPv6 agent
  */
@@ -425,6 +430,10 @@ class MIPV6Agent : public IFMNGMTAgent {
   void recv_flow_response(Packet*);
   
   inline int get_ha() { return ha_; }
+  
+  //----------------sem start------------------//
+//  NEMOAgent *nemo_;
+	//----------------sem end------------------//
 
  private:
 	 //----------------sem start------------------//
@@ -453,7 +462,9 @@ class MIPV6Agent : public IFMNGMTAgent {
 		void add_tunnel(Packet* p);
 		void delete_tunnel(Packet* p);
 		  
-		Node*  get_iface_node_by_daddr(int prefix);
+		NEMOAgent* get_nemo_agent_by_addr(int addr);
+		
+		int compute_new_address (int prefix, Node *interface);
 		
 		int hoa_;	//	home address
 		int ha_;		//	home aget address
