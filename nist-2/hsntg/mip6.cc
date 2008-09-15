@@ -114,9 +114,9 @@ public:
 /*
  * Creates a neighbor discovery agent
  */
-MIPV6Agent::MIPV6Agent() : 
-	IFMNGMTAgent(), hoa_(0), ha_(0), coa_(0), nemo_prefix_(0), udpmysip_(NULL),	iface_node_(NULL) {
+MIPV6Agent::MIPV6Agent() : IFMNGMTAgent(), udpmysip_(NULL) {
 	LIST_INIT(&bulist_head_);
+//hoa_(0), ha_(0), coa_(0), nemo_prefix_(0), iface_node_(NULL)
 //	LIST_INIT(&tunnel_head_);
 //	LIST_INIT(&bslist_head_);
 //	LIST_INIT(&history_head_);
@@ -176,12 +176,12 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 			debug("node_type_ %d\n",node_type_);
 			return TCL_OK;
 		}
-		if (strcmp(argv[1], "binding")==0)
-		{
-			iface_node_ = (Node *) TclObject::lookup(argv[2]);
-			send_bu_msg(iface_node_);
-			return TCL_OK;
-		}
+//		if (strcmp(argv[1], "binding")==0)
+//		{
+//			iface_node_ = (Node *) TclObject::lookup(argv[2]);
+//			send_bu_msg(iface_node_);
+//			return TCL_OK;
+//		}
 //		if (strcmp(argv[1], "mipv6-interface")==0)
 //		{
 //			Tcl& tcl = Tcl::instance();
@@ -195,29 +195,44 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 				return TCL_ERROR;
 			return TCL_OK;
 		}
-		if (strcmp(argv[1], "set-nemo-prefix")==0)
-		{
-			nemo_prefix_ = Address::instance().str2addr(argv[2]);	
-			if(nemo_prefix_==0)
-				return TCL_ERROR;
-			return TCL_OK;
-		}
+//		if (strcmp(argv[1], "set-nemo-prefix")==0)
+//		{
+//			nemo_prefix_ = Address::instance().str2addr(argv[2]);	
+//			if(nemo_prefix_==0)
+//				return TCL_ERROR;
+//			return TCL_OK;
+//		}
 	}
 	if (argc==4) 
 	{
-		if (strcmp(argv[1], "set-ha")==0) 
+		if (strcmp(argv[1], "set-cn")==0) 
 		{
-			ha_ = Address::instance().str2addr(argv[2]);	//home agent address
-			hoa_ = Address::instance().str2addr(argv[3]);	//home address
-			BUEntry* nn = add_bulist(ha_, BU_HA, ON);
-			nn->activate_entry(NOW, TIME_INFINITY);
+			int ha_ = Address::instance().str2addr(argv[2]);	//home agent address
+			int hoa_ = Address::instance().str2addr(argv[3]);	//home address
+			BUEntry* bu = new BUEntry(ha_, BU_HA, ON, hoa_);
+			bu->insert_entry(&bulist_head_);
 			dump();
 			return TCL_OK;
 		}
 	}
+	if (argc==5) 
+		{
+			if (strcmp(argv[1], "set-mn")==0) 
+			{
+				int ha_ = Address::instance().str2addr(argv[2]);						//	home agent address
+				int hoa_ = Address::instance().str2addr(argv[3]);						//	home address
+				Node *eface_ = (Node *)TclObject::lookup(argv[4]);					// using external interface
+				if (eface_==NULL)
+					return TCL_ERROR;
+				BUEntry* bu = new BUEntry(ha_, BU_HA, ON, hoa_, eface_);
+				bu->insert_entry(&bulist_head_);
+				dump();
+				return TCL_OK;
+			}
+		}
 	if (argc==7)
 	{
-		if (strcmp(argv[1], "set-ha")==0) 
+		if (strcmp(argv[1], "set-mr")==0) 
 		{
 			int ha_ = Address::instance().str2addr(argv[2]);													//	home agent address
 			int hoa_ = Address::instance().str2addr(argv[3]);													//	home address
@@ -663,23 +678,12 @@ void MIPV6Agent::process_exp_prefix(exp_prefix* data) {
 	free(data);
 }
 
-BUEntry* MIPV6Agent::add_bulist(int daddr, Mipv6RegType type, int flag) {
-	BUEntry* n = lookup_coa(daddr, head(bulist_head_));
-	if (n == NULL) {
-		n = new BUEntry(daddr, type, flag);
-		n->insert_entry(&bulist_head_);
-	}
-	//n->activate_entry(NOW, reglftm_);
-	return n;
-}
+
 
 void MIPV6Agent::dump() {
-	dump_list(head(bulist_head_), "Binding Update List");
-//	dump_list(head(bslist_head_), "Base Station List");
-//	dump_list(head(history_head_), "History List");
-}
-
-void MIPV6Agent::dump_list(BUEntry* node, char* txt) {
+	
+	BUEntry* node = head(bulist_head_);
+	
 	if (node) {
 		
 //		debug("\n|%s for node %s at %d\n",txt,PRINTADDR(addr()),NOW);
@@ -689,7 +693,7 @@ void MIPV6Agent::dump_list(BUEntry* node, char* txt) {
 //					node->type, node->info, node->mac_->addr());
 //		}
 		
-		cout <<"\n|"<< txt << " for node "<< PRINTADDR(addr()) <<" at "<< NOW <<"\n";
+		cout <<"\n|"<< "Binding Update List" << " for node "<< PRINTADDR(addr()) <<" at "<< NOW <<"\n";
 		cout <<"|Node \t HoA \t CoA \t Type \t Info \t NEMO_prefixe \t eFace \t NEMO_agent \n";
 
 		for (; node; node=node->next_entry() ) {
@@ -757,32 +761,44 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 		{
 			if (nh->H()==ON) 
 			{
-				//	mn has ha, register to my-ha and mn-ha
+				//	mn has ha, tunnel to my-ha
 				
-				delete_tunnel(p);
-				mn_registration(p);
-				dump();
-				//	test sending back by iface
-//				Node *iface = get_iface_node_by_daddr(iph->daddr());
-//				if(iface==NULL)
-//					printf("iface NULL");
-//				if(nemo_==NULL)
-//					printf("nemo_ NULL");
-//				assert(iface!=NULL);
-//				assert(nemo_!=NULL);
-				//printf("test");
-				//send_bu_ack(p,iface);
+				//delete_tunnel(p);
+				//registration(p);
+				//dump();
+
+				int prefix = iph->saddr() & 0xFFFFF800;
+				BUEntry* bu= get_entry_by_prefix(prefix);
 				
-				get_nemo_agent_by_addr(iph->daddr())->send_bu_ack(p);
-//				
-//				nemo_->send_bu_ack(p);
+				assert(bu!=NULL);
+				
+				//add_tunnel(p);
+				
+				
+				iph->daddr()=bu->addr;
+				
+				//we need to send using the interface
+				{
+					Tcl& tcl = Tcl::instance();
+					tcl.evalf("%s target [%s entry]", this->name(), bu->eface()->name());
+				}
+				
+				debug("At %f MIPv6 Agent in %s tunnel packet to %s\n", 
+								NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+				
+				Packet* p_tunnel = p->copy();
+				
+				send(p_tunnel,0);
 				
 			} else {
 				//	mn has no ha, register myself
-				mn_registration(p);
+				registration(p);
+				dump();
 				if (nh->A()==ON) 
 				{
-					send_bu_ack(p);
+					int prefix = iph->saddr() & 0xFFFFF800;
+					debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
+					get_nemo_agent_by_addr(prefix)->send_bu_ack(p);
 				}
 			}
 			
@@ -802,7 +818,7 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 			if (nh->H()==ON) 
 			{
 				delete_tunnel(p);
-				mn_registration(p);
+				registration(p);
 				dump();
 			}
 			if (nh->A()==ON) 
@@ -819,12 +835,16 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 
 }
 
-void MIPV6Agent::mn_registration(Packet* p) {
+void MIPV6Agent::registration(Packet* p) {
 	hdr_nemo* nh= HDR_NEMO(p);
+	
 	
 	printf("MIPV6Agent::registration hdr_nemo---> coa %s haddr %s r %d\n",
 			Address::instance().print_nodeaddr(nh->coa()), Address::instance().print_nodeaddr(nh->haddr()), nh->R() );
-	
+	if(node_type_==MR)
+	{
+		
+	}
 	BUEntry* n = lookup_entry(nh->haddr(),nh->coa(),head(bulist_head_));
 	if(!n)
 	{
@@ -850,10 +870,12 @@ void MIPV6Agent::send_bu_msg() {
 	hdr_ip *iph= HDR_IP(p);
 	hdr_cmn *hdrc= HDR_CMN(p);
 	
+	BUEntry *bu =  bulist_head_.lh_first;
+	assert(bu!=NULL);
 	
 	//----------------sem start------------------//
 	hdr_nemo *nh= HDR_NEMO(p);
-	nh->haddr() = hoa_;
+	nh->haddr() = bu->haddr;
 	nh->coa()=addr();
 	nh->H()=ON;
 	nh->A()=ON;
@@ -863,7 +885,7 @@ void MIPV6Agent::send_bu_msg() {
 	//----------------sem end------------------//
 
 	iph->saddr() = addr(); //we overwrite to use the interface address
-	iph->daddr() = ha_;
+	iph->daddr() = bu->addr;
 	iph->dport() = port();
 	hdrc->ptype() = PT_NEMO;
 	hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
@@ -875,103 +897,119 @@ void MIPV6Agent::send_bu_msg() {
 
 }
 
-void MIPV6Agent::send_bu_msg(Node *iface) {
-	coa_ = iface->address();
-	
-	Packet *p = allocpkt();
-	hdr_ip *iph= HDR_IP(p);
-	hdr_cmn *hdrc= HDR_CMN(p);
-
-	//----------------sem start------------------//
-	hdr_nemo *nh= HDR_NEMO(p);
-	nh->haddr() = hoa_;
-	nh->coa()=iface->address();
-	nh->H()=ON;
-	nh->A()=ON;
-	nh->type()=BU;
-	nh->lifetime()=TIME_INFINITY;
-	nh->seqno()=0;
-	//----------------sem end------------------//
-	
-	iph->saddr() = iface->address(); //we overwrite to use the interface address	
-	iph->dport() = port();
-	hdrc->ptype() = PT_NEMO;
-	hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
-	add_tunnel(p);
-	//we need to send using the interface
-//	{
-//		Tcl& tcl = Tcl::instance();
-//		tcl.evalf("%s target [%s entry]", this->name(), iface->name());
-//	}
-	
-	Tcl& tcl = Tcl::instance();
-	tcl.evalf("%s entry", iface->name());
-	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
-	Scheduler::instance().schedule(obj,p->copy(),0.1);
-	
-	debug(
-			"At %f MIPv6 Agent in %s send binding update message using interface %s\n", 
-			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
-
-//	send(p, 0);
-	
-//	obj-> recv(p);
-
-}
+//void MIPV6Agent::send_bu_msg(Node *iface) {
+//	coa_ = iface->address();
+//	
+//	Packet *p = allocpkt();
+//	hdr_ip *iph= HDR_IP(p);
+//	hdr_cmn *hdrc= HDR_CMN(p);
+//
+//	//----------------sem start------------------//
+//	hdr_nemo *nh= HDR_NEMO(p);
+//	nh->haddr() = hoa_;
+//	nh->coa()=iface->address();
+//	nh->H()=ON;
+//	nh->A()=ON;
+//	nh->type()=BU;
+//	nh->lifetime()=TIME_INFINITY;
+//	nh->seqno()=0;
+//	//----------------sem end------------------//
+//	
+//	iph->saddr() = iface->address(); //we overwrite to use the interface address	
+//	iph->dport() = port();
+//	hdrc->ptype() = PT_NEMO;
+//	hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+//	add_tunnel(p);
+//	//we need to send using the interface
+////	{
+////		Tcl& tcl = Tcl::instance();
+////		tcl.evalf("%s target [%s entry]", this->name(), iface->name());
+////	}
+//	
+//	Tcl& tcl = Tcl::instance();
+//	tcl.evalf("%s entry", iface->name());
+//	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+//	Scheduler::instance().schedule(obj,p->copy(),0.1);
+//	
+//	debug(
+//			"At %f MIPv6 Agent in %s send binding update message using interface %s\n", 
+//			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
+//
+////	send(p, 0);
+//	
+////	obj-> recv(p);
+//
+//}
 
 void MIPV6Agent::send_bu_msg(int prefix, Node *iface) {
-	coa_ = iface->address();
+	
+	
+	BUEntry *bu =  get_entry_by_iface(iface);
+
+//	debug(
+//				"prefix %s iface->address %s\n", Address::instance().print_nodeaddr(prefix),
+//				Address::instance().print_nodeaddr(iface->address()));
+	
+	bu->caddr = iface->address();
 	
 	Packet *p = allocpkt();
 	hdr_ip *iph= HDR_IP(p);
 	hdr_cmn *hdrc= HDR_CMN(p);
-
-	//----------------sem start------------------//
 	hdr_nemo *nh= HDR_NEMO(p);
 	
-	if(ha_==0)	//MN has no HA
-		nh->haddr() = prefix;
-	else
-		nh->haddr() = hoa_;
-	
-	nh->coa()=iface->address();
-	nh->H()=ON;
-	nh->A()=ON;
-	nh->type()=BU;
-	nh->lifetime()=TIME_INFINITY;
-	nh->seqno()=0;
-	if(nemo_prefix_!=0)
-			nh->nemo_prefix()=nemo_prefix_;
-	//----------------sem end------------------//
-	
-	iph->saddr() = iface->address(); //we overwrite to use the interface address
-	if(nemo_prefix_==0)	//	MN node
+	if(bu!=NULL) {
+		debug("MN node \n");
+		nh->coa()=iface->address();
+		nh->haddr() = bu->haddr;	
+		nh->H()=ON;
+		nh->A()=ON;
+		nh->type()=BU;
+		nh->lifetime()=TIME_INFINITY;
+		nh->seqno()=0;
+		
+		iph->saddr() = iface->address();
+		iph->daddr()= bu->addr	;
+		iph->dport() = port();
+		hdrc->ptype() = PT_NEMO;
+		hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+		
+		add_tunnel(p);				
 		iph->daddr() = prefix;
-	else	//	MR node
-		iph->daddr() = ha_;
-			
-	iph->dport() = port();
-	hdrc->ptype() = PT_NEMO;
-	hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
-	add_tunnel(p);
-	//we need to send using the interface
-//	{
-//		Tcl& tcl = Tcl::instance();
-//		tcl.evalf("%s target [%s entry]", this->name(), iface->name());
-//	}
+		
+	} else {
+		debug("LFN node \n");
+		nh->coa()=iface->address();
+		nh->haddr() = prefix;
+		nh->H()=OFF;
+		nh->A()=ON;
+		nh->type()=BU;
+		nh->lifetime()=TIME_INFINITY;
+		nh->seqno()=0;
+		
+		iph->saddr() = iface->address();
+		iph->daddr() = prefix;
+		iph->dport() = port();
+		hdrc->ptype() = PT_NEMO;
+		hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+		
+	}
 	
-	Tcl& tcl = Tcl::instance();
-	tcl.evalf("%s entry", iface->name());
-	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
-	Scheduler::instance().schedule(obj,p->copy(),0.1);
+	//we need to send using the interface
+	{
+		Tcl& tcl = Tcl::instance();
+		tcl.evalf("%s target [%s entry]", this->name(), iface->name());
+	}
+	
+//	Tcl& tcl = Tcl::instance();
+//	tcl.evalf("%s entry", iface->name());
+//	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+//	Scheduler::instance().schedule(obj,p->copy(),0.1);
 	
 	debug(
 			"At %f MIPv6 Agent in %s send binding update message using interface %s\n", 
 			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
 
-//	send(p, 0);
-	
-//	obj-> recv(p);
+	send(p, 0);
 
 }
 void MIPV6Agent::send_mn_bu_msg(Packet* p, int prefix) {
@@ -1008,34 +1046,34 @@ void MIPV6Agent::send_bu_ack(Packet* p) {
 	
 }
 
-void MIPV6Agent::send_bu_ack(Packet* p, Node* iface) {
-	hdr_nemo *nh= HDR_NEMO(p);
-	
-	//reply packet
-	Packet *p_ack = allocpkt();
-	hdr_ip *iph_ack= HDR_IP(p_ack);
-	hdr_nemo *nh_ack= HDR_NEMO(p_ack);
-	hdr_cmn *hdrc_ack= HDR_CMN(p_ack);
-
-	nh_ack->type()=BACK;
-	nh_ack->lifetime()=0;
-	nh_ack->seqno()=nh->seqno();
-
-	iph_ack->saddr() = addr();
-	iph_ack->daddr() = nh->coa();
-	iph_ack->dport() = port();
-	hdrc_ack->ptype() = PT_NEMO;
-	hdrc_ack->size() = IPv6_HEADER_SIZE + BACK_SIZE;
-	
-	
-	debug("At %f MIPv6 Agent in %s send binding update ack message using interface %s \n", 
-			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
-	send(p_ack, 0);
-	Tcl& tcl = Tcl::instance();
-	tcl.evalf("%s entry", iface->name());
-	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
-	Scheduler::instance().schedule(obj,p->copy(),0.1);
-}
+//void MIPV6Agent::send_bu_ack(Packet* p, Node* iface) {
+//	hdr_nemo *nh= HDR_NEMO(p);
+//	
+//	//reply packet
+//	Packet *p_ack = allocpkt();
+//	hdr_ip *iph_ack= HDR_IP(p_ack);
+//	hdr_nemo *nh_ack= HDR_NEMO(p_ack);
+//	hdr_cmn *hdrc_ack= HDR_CMN(p_ack);
+//
+//	nh_ack->type()=BACK;
+//	nh_ack->lifetime()=0;
+//	nh_ack->seqno()=nh->seqno();
+//
+//	iph_ack->saddr() = addr();
+//	iph_ack->daddr() = nh->coa();
+//	iph_ack->dport() = port();
+//	hdrc_ack->ptype() = PT_NEMO;
+//	hdrc_ack->size() = IPv6_HEADER_SIZE + BACK_SIZE;
+//	
+//	
+//	debug("At %f MIPv6 Agent in %s send binding update ack message using interface %s \n", 
+//			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
+//	send(p_ack, 0);
+//	Tcl& tcl = Tcl::instance();
+//	tcl.evalf("%s entry", iface->name());
+//	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+//	Scheduler::instance().schedule(obj,p->copy(),0.1);
+//}
 
 void MIPV6Agent::recv_bu_ack(Packet* p) {
 	//received packet
@@ -1050,100 +1088,101 @@ void MIPV6Agent::recv_bu_ack(Packet* p) {
 
 void MIPV6Agent::tunneling(Packet* p)
 {
-	//printf("MIPV6Agent::tunneling\n");
-	if(ha_!=0)
-	{
-		hdr_ip* ih = HDR_IP(p);
-		if(ih->daddr()==coa_ || ih->daddr()==addr())
-		{
-			debug("At %f MIPv6 HA Agent in %s recv tunnel packet\n", NOW, MYNUM);
-			
-			delete_tunnel(p);
-			Packet* p_untunnel = p->copy();
-//			target_->recv(p_untunnel);
-			if(udpmysip_!=0 )
-				udpmysip_->recv(p_untunnel,0);
-			else
-				debug("Unable to find udpmysip\n");
-		}
-		else
-		{
-			debug("At %f MIPv6 Agent in %s tunnel packet to HA\n", NOW, MYNUM);
-			Packet* p_tunnel = p->copy();
-			add_tunnel(p_tunnel);
-			hdr_ip* ih_tunnel = HDR_IP(p_tunnel);
-			ih_tunnel->daddr() = ha_;
-			ih_tunnel->dport() = port();
-			debug("daddr() %s dport() %d\n",Address::instance().print_nodeaddr(ih_tunnel->daddr()), ih_tunnel->dport());
-			send(p_tunnel, 0);
-//			add_tunnel(p);
-//			ih->daddr() = ha_;
-//			ih->dport() = port();
-//			debug("daddr() %s dport() %d\n",Address::instance().print_nodeaddr(ih->daddr()), ih->dport());
-//			send(p, 0);
-		}
-	} 
-	else 
-	{
-		//	recv by MIPV6 home agent (ha_==0)
-		
-		
-		hdr_ip* ih = HDR_IP(p);
-		
-//		hdr_mysip* siph = hdr_mysip::access(p);
-//		hdr_nemo* nh = hdr_mysip::access(p);
-		
-		debug("At %f MIPv6 HA Agent in %s tunnel packet to %s\n", 
-				NOW, MYNUM, Address::instance().print_nodeaddr(ih->daddr()));
-		
-		delete_tunnel(p);
-		
-		BUEntry* n = lookup_coa(Address::instance().get_nodeaddr(ih->daddr()), head(bulist_head_));
-		if (n) 
-		{
-			//	Find care-of-address
-			Packet *p_tunnel = p->copy();
-			hdr_ip* ih_tunnel = hdr_ip::access(p_tunnel);
-			
-			add_tunnel(p_tunnel);
-			
-			ih_tunnel->daddr() = n->caddr;
-			ih_tunnel->dport() = port();
-			
-			debug("%s coa %s find\n", Address::instance().print_nodeaddr(ih->daddr()), 
-					Address::instance().print_nodeaddr(n->caddr));
-			
-			send(p_tunnel, 0);
-		} 
-		else 
-		{
-			n = lookup_hoa(Address::instance().get_nodeaddr(ih->daddr()), head(bulist_head_));
-			if(n)
-			{
-				//	Find home address
-				Packet *p_tunnel = p->copy();
-				hdr_ip* ih_tunnel = hdr_ip::access(p_tunnel);
-				
-				add_tunnel(p_tunnel);
-				
-				ih_tunnel->daddr() = n->caddr;
-				ih_tunnel->dport() = port();
-				
-				debug("%s hoa %s find\n", Address::instance().print_nodeaddr(ih->daddr()),
-						Address::instance().print_nodeaddr(n->haddr));
-				
-				send(p_tunnel, 0);
-			}
-			else
-			{
-				//	Not find care-of-address and home address
-				debug("coa or hoa not find\n");
-				send(p,0);
-				Packet::free(p);
-			}
-		}
-			
-	}
+	debug("MIPV6Agent::tunneling\n");
+	
+//	if(node_type_!=0)
+//	{
+//		hdr_ip* ih = HDR_IP(p);
+//		if(ih->daddr()==coa_ || ih->daddr()==addr())
+//		{
+//			debug("At %f MIPv6 HA Agent in %s recv tunnel packet\n", NOW, MYNUM);
+//			
+//			delete_tunnel(p);
+//			Packet* p_untunnel = p->copy();
+////			target_->recv(p_untunnel);
+//			if(udpmysip_!=0 )
+//				udpmysip_->recv(p_untunnel,0);
+//			else
+//				debug("Unable to find udpmysip\n");
+//		}
+//		else
+//		{
+//			debug("At %f MIPv6 Agent in %s tunnel packet to HA\n", NOW, MYNUM);
+//			Packet* p_tunnel = p->copy();
+//			add_tunnel(p_tunnel);
+//			hdr_ip* ih_tunnel = HDR_IP(p_tunnel);
+//			ih_tunnel->daddr() = ha_;
+//			ih_tunnel->dport() = port();
+//			debug("daddr() %s dport() %d\n",Address::instance().print_nodeaddr(ih_tunnel->daddr()), ih_tunnel->dport());
+//			send(p_tunnel, 0);
+////			add_tunnel(p);
+////			ih->daddr() = ha_;
+////			ih->dport() = port();
+////			debug("daddr() %s dport() %d\n",Address::instance().print_nodeaddr(ih->daddr()), ih->dport());
+////			send(p, 0);
+//		}
+//	} 
+//	else 
+//	{
+//		//	recv by MIPV6 home agent (ha_==0)
+//		
+//		
+//		hdr_ip* ih = HDR_IP(p);
+//		
+////		hdr_mysip* siph = hdr_mysip::access(p);
+////		hdr_nemo* nh = hdr_mysip::access(p);
+//		
+//		debug("At %f MIPv6 HA Agent in %s tunnel packet to %s\n", 
+//				NOW, MYNUM, Address::instance().print_nodeaddr(ih->daddr()));
+//		
+//		delete_tunnel(p);
+//		
+//		BUEntry* n = lookup_coa(Address::instance().get_nodeaddr(ih->daddr()), head(bulist_head_));
+//		if (n) 
+//		{
+//			//	Find care-of-address
+//			Packet *p_tunnel = p->copy();
+//			hdr_ip* ih_tunnel = hdr_ip::access(p_tunnel);
+//			
+//			add_tunnel(p_tunnel);
+//			
+//			ih_tunnel->daddr() = n->caddr;
+//			ih_tunnel->dport() = port();
+//			
+//			debug("%s coa %s find\n", Address::instance().print_nodeaddr(ih->daddr()), 
+//					Address::instance().print_nodeaddr(n->caddr));
+//			
+//			send(p_tunnel, 0);
+//		} 
+//		else 
+//		{
+//			n = lookup_hoa(Address::instance().get_nodeaddr(ih->daddr()), head(bulist_head_));
+//			if(n)
+//			{
+//				//	Find home address
+//				Packet *p_tunnel = p->copy();
+//				hdr_ip* ih_tunnel = hdr_ip::access(p_tunnel);
+//				
+//				add_tunnel(p_tunnel);
+//				
+//				ih_tunnel->daddr() = n->caddr;
+//				ih_tunnel->dport() = port();
+//				
+//				debug("%s hoa %s find\n", Address::instance().print_nodeaddr(ih->daddr()),
+//						Address::instance().print_nodeaddr(n->haddr));
+//				
+//				send(p_tunnel, 0);
+//			}
+//			else
+//			{
+//				//	Not find care-of-address and home address
+//				debug("coa or hoa not find\n");
+//				send(p,0);
+//				Packet::free(p);
+//			}
+//		}
+//			
+//	}
 }
 
 void MIPV6Agent::add_tunnel(Packet* p)
@@ -1198,6 +1237,7 @@ NEMOAgent* MIPV6Agent::get_nemo_agent_by_addr(int addr)
 	BUEntry *bu =  bulist_head_.lh_first;
 	for(;bu;bu=bu->next_entry()) {
 		if(bu->prefix()==addr) {
+			printf("test");
 			return bu->nemo_agent();
 		}
 	}
@@ -1236,3 +1276,24 @@ int MIPV6Agent::compute_new_address (int prefix, Node *interface)
 
 }
 
+BUEntry* MIPV6Agent::get_entry_by_iface(Node *iface)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->eface()==iface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+BUEntry* MIPV6Agent::get_entry_by_prefix(int addr)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->nemo_prefix_==addr) {
+			return bu;
+		}
+	}
+	return NULL;
+}

@@ -143,6 +143,77 @@ public:
 		}
 	}
 	
+	//	Adding by CN
+	BUEntry(int address, Mipv6RegType t, int f, int home_addr)
+	{
+		addr = address;
+		haddr = home_addr;
+		caddr = -1;
+		seqno = -1;
+		flag = f;
+		lftm = 0;
+		time = -1;
+		active_expire = 0;
+		nbbu = 0;
+		type = t;
+
+		nemo_prefix_ = -1;
+		eface_ = NULL;
+		nemo_agent_ = NULL;
+
+		switch ( t )
+		{
+		case BU_HA:
+			strcpy(info, "HA"); break;
+		case BU_BS:
+			strcpy(info, "BS"); break;
+		case BU_MN:
+			strcpy(info, "MN"); break;
+		case BS_ADS:
+			strcpy(info, "BS"); break;
+		case BU_RP:
+			strcpy(info, "RP"); break;
+		default:
+			strcpy(info, "CN"); break;
+		}
+	}
+	
+	//	Adding by MN
+	BUEntry(int address, Mipv6RegType t, int f, int home_addr, Node *eface)
+	{
+		addr = address;
+		haddr = home_addr;
+		caddr = -1;
+		seqno = -1;
+		flag = f;
+		lftm = 0;
+		time = -1;
+		active_expire = 0;
+		nbbu = 0;
+		type = t;
+
+		nemo_prefix_ = -1;
+		eface_ = eface;
+		nemo_agent_ = NULL;
+
+		switch ( t )
+		{
+		case BU_HA:
+			strcpy(info, "HA"); break;
+		case BU_BS:
+			strcpy(info, "BS"); break;
+		case BU_MN:
+			strcpy(info, "MN"); break;
+		case BS_ADS:
+			strcpy(info, "BS"); break;
+		case BU_RP:
+			strcpy(info, "RP"); break;
+		default:
+			strcpy(info, "CN"); break;
+		}
+	}
+	
+	//	Adding by MR
 	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, Node *eface, NEMOAgent *nemo_agent)
 	{
 		addr = address;
@@ -198,6 +269,10 @@ public:
 		flag = ON;
 	}
 	
+//	inline int addr() { return addr;}
+//	inline int& haddr() { return haddr;}
+//	inline int& caddr() { return caddr; }
+//	inline Mipv6RegType& type() { return type; }
 	inline Node* eface() { return eface_;}
 	inline int& prefix() { return nemo_prefix_;} 
 	inline NEMOAgent* nemo_agent() { return nemo_agent_;}
@@ -412,7 +487,7 @@ class MIPV6Agent : public IFMNGMTAgent {
   int seqNumberFlowRequest_;
   
   //----------------sem start------------------//
-  void send_bu_msg(Node *iface);
+//  void send_bu_msg(Node *iface);
   void send_bu_msg(int prefix, Node *iface);
 	void tunneling(Packet* p);
   //----------------sem end------------------//
@@ -429,7 +504,7 @@ class MIPV6Agent : public IFMNGMTAgent {
   void recv_flow_request(Packet*);
   void recv_flow_response(Packet*);
   
-  inline int get_ha() { return ha_; }
+//  inline int get_ha() { return ha_; }
   
   //----------------sem start------------------//
 //  NEMOAgent *nemo_;
@@ -437,13 +512,11 @@ class MIPV6Agent : public IFMNGMTAgent {
 
  private:
 	 //----------------sem start------------------//
-//	 struct tunnel_entry tunnel_head_;
+	 
 	 struct bu_entry bulist_head_;
-//		struct bu_entry bslist_head_;
-//		struct bu_entry history_head_;
+	 
 		void dump();
-		void dump_list(BUEntry* node, char* txt);
-		BUEntry* add_bulist(int, Mipv6RegType, int);
+		
 		BUEntry* lookup_coa(int addr, BUEntry* n);
 		BUEntry* lookup_hoa(int addr, BUEntry* n);
 		BUEntry* lookup_entry(int addr, int coa, BUEntry* n);
@@ -453,9 +526,9 @@ class MIPV6Agent : public IFMNGMTAgent {
 		void send_bu_msg();
 		void send_mn_bu_msg(Packet* p, int prefix);
 		
-		void mn_registration(Packet* p);
+		void registration(Packet* p);
 		void send_bu_ack(Packet* p);
-		void send_bu_ack(Packet* p, Node* iface);
+//		void send_bu_ack(Packet* p, Node* iface);
 		void recv_bu_ack(Packet* p);
 		void recv_nemo(Packet* p);
 		
@@ -464,17 +537,21 @@ class MIPV6Agent : public IFMNGMTAgent {
 		  
 		NEMOAgent* get_nemo_agent_by_addr(int addr);
 		
+		BUEntry* get_entry_by_iface(Node *iface);
+		BUEntry* get_entry_by_prefix(int addr);
+		
+		
 		int compute_new_address (int prefix, Node *interface);
 		
-		int hoa_;	//	home address
-		int ha_;		//	home aget address
-		int coa_;	//	care-of address
-		int nemo_prefix_;	// nemo prefix
+//		int hoa_;	//	home address
+//		int ha_;		//	home aget address
+//		int coa_;	//	care-of address
+//		int nemo_prefix_;	// nemo prefix
 		
 		Mipv6NodeType node_type_;
 
 		UdpmysipAgent* udpmysip_;
-		Node* iface_node_;
+//		Node* iface_node_;
 	 //----------------sem end------------------//
 	 
   vector <list_node*> list_nodes;

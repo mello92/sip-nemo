@@ -415,9 +415,12 @@ set nd_nemo_node [$nemo_node install-nd]
 
 
 set mipv6_mn [$mnNode install-default-ifmanager]
-$mipv6_mn set-ha 5.0.0 5.0.1
+$mipv6_mn set-mn 5.0.0 5.0.1 $nemo_node
 
 $nd_nemo_node set-ifmanager $mipv6_mn
+
+
+$mipv6_mn set-node-type $node_type(MN)
 
 #set ifmgmt_nemo [$nemo install-default-ifmanager]
 #set ifmgmt_nemo_node [$nemo install-default-ifmanager]
@@ -455,7 +458,11 @@ $mr_nemo connect-iface $nemo
 set mipv6_cn [$router0 install-default-ifmanager]
 set mipv6_ha	[$router2 install-default-ifmanager]
 
-$mipv6_cn set-ha 5.0.0 5.0.1
+$mipv6_cn set-cn 5.0.0 5.0.1
+
+$mipv6_cn set-node-type $node_type(CN)
+
+$mipv6_ha set-node-type $node_type(MN_HA)
 
 #
 #create traffic: TCP application between router0 and Multi interface node
@@ -630,7 +637,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$handover set-ha 5.0.0 5.0.2 6.0.0 $iface1 $mr_nemo
+$handover set-mr 5.0.0 5.0.2 6.0.0 $iface1 $mr_nemo
 
 $handover set-node-type $node_type(MR)
 
