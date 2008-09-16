@@ -106,8 +106,8 @@ public:
 	char info[10];
 	
 	int nemo_prefix_;
-	Node *eface_;
-	NEMOAgent *nemo_agent_;
+	NEMOAgent *eface_agent_;
+	NEMOAgent *iface_agent_;
 
 	BUEntry(int address, Mipv6RegType t, int f)
 	{
@@ -123,8 +123,8 @@ public:
 		type = t;
 		
 		nemo_prefix_ = -1;
-		eface_ = NULL;
-		nemo_agent_ = NULL;
+		eface_agent_ = NULL;
+		iface_agent_ = NULL;
 
 		switch ( t )
 		{
@@ -158,8 +158,8 @@ public:
 		type = t;
 
 		nemo_prefix_ = -1;
-		eface_ = NULL;
-		nemo_agent_ = NULL;
+		eface_agent_ = NULL;
+		iface_agent_ = NULL;
 
 		switch ( t )
 		{
@@ -179,7 +179,7 @@ public:
 	}
 	
 	//	Adding by MN
-	BUEntry(int address, Mipv6RegType t, int f, int home_addr, Node *eface)
+	BUEntry(int address, Mipv6RegType t, int f, int home_addr, NEMOAgent *eface_agent)
 	{
 		addr = address;
 		haddr = home_addr;
@@ -193,8 +193,8 @@ public:
 		type = t;
 
 		nemo_prefix_ = -1;
-		eface_ = eface;
-		nemo_agent_ = NULL;
+		eface_agent_ = eface_agent;
+		iface_agent_ = NULL;
 
 		switch ( t )
 		{
@@ -214,7 +214,7 @@ public:
 	}
 	
 	//	Adding by MR
-	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, Node *eface, NEMOAgent *nemo_agent)
+	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, NEMOAgent *eface_agent, NEMOAgent *iface_agent)
 	{
 		addr = address;
 		haddr = home_addr;
@@ -228,8 +228,8 @@ public:
 		type = t;
 		
 		nemo_prefix_ = nemo_prefix;
-		eface_ = eface;
-		nemo_agent_ = nemo_agent;
+		eface_agent_ = eface_agent;
+		iface_agent_ = iface_agent;
 
 		switch ( t )
 		{
@@ -273,9 +273,10 @@ public:
 //	inline int& haddr() { return haddr;}
 //	inline int& caddr() { return caddr; }
 //	inline Mipv6RegType& type() { return type; }
-	inline Node* eface() { return eface_;}
+	
 	inline int& prefix() { return nemo_prefix_;} 
-	inline NEMOAgent* nemo_agent() { return nemo_agent_;}
+	inline NEMOAgent* eface() { return eface_agent_;}
+	inline NEMOAgent* iface() { return iface_agent_;}
 
 	inline double expire() { return (time + lftm); }
 	inline double& lifetime() { return lftm; }
@@ -535,11 +536,10 @@ class MIPV6Agent : public IFMNGMTAgent {
 		void add_tunnel(Packet* p);
 		void delete_tunnel(Packet* p);
 		  
-		NEMOAgent* get_nemo_agent_by_addr(int addr);
-		
+		NEMOAgent* get_iface_agent_by_prefix(int prefix);
+		NEMOAgent* get_eface_agent_by_prefix(int prefix);
 		BUEntry* get_entry_by_iface(Node *iface);
-		BUEntry* get_entry_by_prefix(int addr);
-		
+		BUEntry* get_entry_by_prefix(int prefix);
 		
 		int compute_new_address (int prefix, Node *interface);
 		

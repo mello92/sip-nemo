@@ -413,9 +413,11 @@ set nd_nemo_node [$nemo_node install-nd]
 #
 #$nemo_node_handover set-ha 5.0.0 5.0.3
 
+set nemo_mn_eface1 [$mnNode install-nemo 200]
+$nemo_mn_eface1 connect-interface $nemo_node
 
 set mipv6_mn [$mnNode install-default-ifmanager]
-$mipv6_mn set-mn 5.0.0 5.0.1 $nemo_node
+$mipv6_mn set-mn 5.0.0 5.0.1 $nemo_mn_eface1
 
 $nd_nemo_node set-ifmanager $mipv6_mn
 
@@ -446,8 +448,15 @@ $handover connect-mih $mih ;#create connection between MIH and iface management
 $handover nd_mac $nd_mn [$iface1 set mac_(0)]
 
 
-set mr_nemo [$multiFaceNode install-nemo]
-$mr_nemo connect-iface $nemo
+
+set nemo_mr_eface1 [$multiFaceNode install-nemo 200]
+set nemo_mr_eface2 [$multiFaceNode install-nemo 201]
+set nemo_mr_iface1 [$multiFaceNode install-nemo 202]
+
+$nemo_mr_eface1 connect-interface $iface0
+$nemo_mr_eface2 connect-interface $iface1
+$nemo_mr_iface1 connect-interface $nemo
+
 
 #$handover connect-nemo $mr_nemo
 
@@ -637,7 +646,8 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$handover set-mr 5.0.0 5.0.2 6.0.0 $iface1 $mr_nemo
+
+$handover set-mr 5.0.0 5.0.2 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
 
 $handover set-node-type $node_type(MR)
 

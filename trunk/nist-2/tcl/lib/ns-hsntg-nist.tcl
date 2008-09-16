@@ -63,9 +63,10 @@ Agent/MIH set retryLimit_              3
 #----------------sem start------------------
 Agent/NEMO set default_port_ 251
 
-Node instproc install-nemo {} {
+Node instproc install-nemo { port } {
 	set ag [new Agent/NEMO]
-	$self attach $ag [$ag set default_port_]
+#	$self attach $ag [$ag set default_port_]
+	$self attach $ag $port
 	
 	return $ag
 }
