@@ -22,7 +22,7 @@ int NEMOAgent::command(int argc, const char*const* argv)
 {
 	if (argc==3)
 	{
-		if(strcmp(argv[1], "connect-iface")==0) {
+		if(strcmp(argv[1], "connect-interface")==0) {
 			iface_ = (Node *)TclObject::lookup(argv[2]);
 			if(iface_==NULL)
 				return TCL_ERROR;
@@ -43,7 +43,6 @@ void NEMOAgent::recv(Packet* p, Handler *h)
 
 void NEMOAgent::send_bu_ack(Packet* p)
 {
-	printf("test");
 	hdr_ip *iph= HDR_IP(p);
 	hdr_nemo *nh= HDR_NEMO(p);
 	
