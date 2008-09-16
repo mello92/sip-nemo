@@ -356,7 +356,7 @@ void Handover1::process_new_prefix (new_prefix* data)
   
   //----------------sem start------------------//
 //  if(get_ha()!=0)
-//	  send_bu_msg(data->prefix, data->interface);
+	  send_bu_msg(data->prefix, data->interface);
   //----------------sem end------------------//
 
 

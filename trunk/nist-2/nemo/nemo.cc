@@ -72,3 +72,9 @@ void NEMOAgent::send_bu_ack(Packet* p)
 	send(p_ack, 0);
 }
 
+void NEMOAgent::send_bu_ha(Packet* p)
+{
+	debug("At %f NEMO Agent in %s send message using interface %s \n", 
+				NOW, MYNUM, Address::instance().print_nodeaddr(iface_->address()));
+	send(p, 0);
+}
