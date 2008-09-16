@@ -16,6 +16,7 @@ public:
 	void recv(Packet*, Handler*);
 	void send_bu_ack(Packet* p);
 	Node* get_iface() { return iface_;}
+	void send_bu_ha(Packet* p);
 	
 protected:
 	int default_port_;

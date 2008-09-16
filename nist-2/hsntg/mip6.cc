@@ -764,37 +764,32 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 		{
 			if (nh->H()==ON) 
 			{
-				//	mn has ha, tunnel to my-ha
+				//	mn has ha, tunnel to mr-ha
 				
 				//delete_tunnel(p);
 				//registration(p);
 				//dump();
 
 				int prefix = iph->saddr() & 0xFFFFF800;
-				debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
-				get_iface_agent_by_prefix(prefix)->send_bu_ack(p);
 				
-//				BUEntry* bu= get_entry_by_prefix(prefix);
-//				
-//				assert(bu!=NULL);
-//				
-//				//add_tunnel(p);
-//				
-//				
-//				iph->daddr()=bu->addr;
-//				
-//				//we need to send using the interface
-//				{
-//					Tcl& tcl = Tcl::instance();
-//					tcl.evalf("%s target [%s entry]", this->name(), bu->eface()->name());
-//				}
-//				
-//				debug("At %f MIPv6 Agent in %s tunnel packet to %s\n", 
-//								NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
-//				
-//				Packet* p_tunnel = p->copy();
-//				
-//				send(p_tunnel,0);
+				BUEntry* bu= get_entry_by_prefix(prefix);
+				
+				assert(bu!=NULL);
+				
+				//add_tunnel(p);
+				
+				//	change car-of-address to mr-ha
+				nh->coa()=bu->addr;
+				
+				iph->daddr()=bu->addr;
+				printf("%s \n", Address::instance().print_nodeaddr(bu->eface()->get_iface()->address()) );	
+				Packet* p_tunnel = p->copy();
+								
+				bu->eface()->send(p_tunnel,0);
+				//bu->eface()->send_bu_ha(p_tunnel);
+				//bu->eface()->recv(p_tunnel,0);
+				debug("At %f MIPv6 Agent in %s tunnel packet to %s\n", 
+								NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 				
 			} else {
 				//	mn has no ha, register myself
@@ -947,18 +942,25 @@ void MIPV6Agent::send_bu_msg(int prefix, Node *iface) {
 		
 	}
 	
-	bu->eface()->send(p,0);
+
 	
 	//we need to send using the interface
 //	{
 //		Tcl& tcl = Tcl::instance();
 //		tcl.evalf("%s target [%s entry]", this->name(), iface->name());
 //	}
+	if(node_type_==MR)
+	{
+	Tcl& tcl = Tcl::instance();
+	tcl.evalf("%s entry", iface->name());
+	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+	Scheduler::instance().schedule(obj,p->copy(),0.1);
 	
-//	Tcl& tcl = Tcl::instance();
-//	tcl.evalf("%s entry", iface->name());
-//	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
-//	Scheduler::instance().schedule(obj,p->copy(),0.1);
+	} else {
+	
+		bu->eface()->send(p,0);
+		
+	}
 	
 	debug(
 			"At %f MIPv6 Agent in %s send binding update message using interface %s\n", 

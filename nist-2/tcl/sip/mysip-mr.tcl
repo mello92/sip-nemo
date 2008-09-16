@@ -254,7 +254,8 @@ $ns node-config  -adhocRouting $opt(adhocRouting) \
 
 # configure Base station 802.11
 set bstation802 [$ns node 3.0.0]
-$bstation802 set X_ 100.0
+#$bstation802 set X_ 100.0
+$bstation802 set X_ 50.0
 $bstation802 set Y_ 100.0
 $bstation802 set Z_ 0.0
 if {$quiet == 0} {
@@ -388,7 +389,7 @@ set nd_mn [$iface1 install-nd]
 set nd_nemo [$nemo install-nd]
 $nd_nemo set-router TRUE
 $nd_nemo router-lifetime 18
-$ns at 1 "$nd_nemo start-ra"
+$ns at 4 "$nd_nemo start-ra"
 
 #set ifmgmt_nemo [$nemo install-default-ifmanager]
 #set mih_nemo [$nemo install-mih]
@@ -594,6 +595,8 @@ $handover add-flow $udp_r $udp_s $iface0 2 ;#2000.
 set dch1 [$ns create-dch $iface0 $udp_r]; 
 #$ns attach-dch $iface0 $udp_r $dch0
 
+#$ns attach-dch $iface0 $nemo_mr_eface1 $dch1
+set dch2 [$ns create-dch $iface0 $nemo_mr_eface1]
 
 $udp_s set packetSize_ 1000
 $udp_r set packetSize_ 1000
@@ -621,7 +624,7 @@ $mysipapp_server myID_URL 88 5.0.0
 $mysipapp_server add_URL_record 9999  5.0.0 5.0.129
 
 $mysipapp_s log_file log handoff
-$mysipapp_r log_file log handoff
+$mysipapp_r log_file log handoff 
 
 
 puts " time [expr $moveStart+80]"
@@ -646,8 +649,8 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-
-$handover set-mr 5.0.0 5.0.2 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+$handover set-mr 5.0.0 5.0.2 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+$handover set-mr 5.0.0 5.0.3 7.0.0 $nemo_mr_eface1 $nemo_mr_iface1
 
 $handover set-node-type $node_type(MR)
 
@@ -659,6 +662,7 @@ $handover set-node-type $node_type(MR)
 
 #Start the application 1sec before the MN is entering the WLAN cell
 $ns at [expr $moveStart - 1] "$cbr_ start"
+#$ns at 0 "$cbr_ start"
 
 #Stop the application according to another poisson distribution (note that we don't leave the 802.11 cell)
 $ns at [expr $moveStop  + 1] "$cbr_ stop"
