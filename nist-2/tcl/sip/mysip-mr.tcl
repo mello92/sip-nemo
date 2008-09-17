@@ -658,6 +658,8 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
+$ns at 7 "$mysipapp_s send_invite 9999 5.0.1"
+
 $handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 $handover set-mr 8.0.0 8.0.2 7.0.0 $nemo_mr_eface1 $nemo_mr_iface1
 
