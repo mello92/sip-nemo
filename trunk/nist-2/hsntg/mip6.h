@@ -93,159 +93,25 @@ LIST_HEAD(bu_entry, BUEntry);
 class BUEntry
 {
 public:
-	int addr;
-	int haddr;
-	int caddr;
-	double lftm;
-	double time;
-	int seqno;
-	int flag;
-	double active_expire;
-	int nbbu;
-	Mipv6RegType type;
-	char info[10];
-	
+	Mipv6NodeType type_;
+	int addr_;
+	int haddr_;
+	int caddr_;
+	int bid_;
 	int nemo_prefix_;
 	NEMOAgent *eface_agent_;
 	NEMOAgent *iface_agent_;
 
-	BUEntry(int address, Mipv6RegType t, int f)
+	BUEntry(Mipv6NodeType type)
 	{
-		addr = address;
-		haddr = -1;
-		caddr = -1;
-		seqno = -1;
-		flag = f;
-		lftm = 0;
-		time = -1;
-		active_expire = 0;
-		nbbu = 0;
-		type = t;
-		
+		type_ = type;
+		addr_ = -1;
+		haddr_ = -1;
+		caddr_ = -1;
+		bid_ = -1;
 		nemo_prefix_ = -1;
 		eface_agent_ = NULL;
 		iface_agent_ = NULL;
-
-		switch ( t )
-		{
-		case BU_HA:
-			strcpy(info, "HA"); break;
-		case BU_BS:
-			strcpy(info, "BS"); break;
-		case BU_MN:
-			strcpy(info, "MN"); break;
-		case BS_ADS:
-			strcpy(info, "BS"); break;
-		case BU_RP:
-			strcpy(info, "RP"); break;
-		default:
-			strcpy(info, "CN"); break;
-		}
-	}
-	
-	//	Adding by CN
-	BUEntry(int address, Mipv6RegType t, int f, int home_addr)
-	{
-		addr = address;
-		haddr = home_addr;
-		caddr = -1;
-		seqno = -1;
-		flag = f;
-		lftm = 0;
-		time = -1;
-		active_expire = 0;
-		nbbu = 0;
-		type = t;
-
-		nemo_prefix_ = -1;
-		eface_agent_ = NULL;
-		iface_agent_ = NULL;
-
-		switch ( t )
-		{
-		case BU_HA:
-			strcpy(info, "HA"); break;
-		case BU_BS:
-			strcpy(info, "BS"); break;
-		case BU_MN:
-			strcpy(info, "MN"); break;
-		case BS_ADS:
-			strcpy(info, "BS"); break;
-		case BU_RP:
-			strcpy(info, "RP"); break;
-		default:
-			strcpy(info, "CN"); break;
-		}
-	}
-	
-	//	Adding by MN
-	BUEntry(int address, Mipv6RegType t, int f, int home_addr, NEMOAgent *eface_agent)
-	{
-		addr = address;
-		haddr = home_addr;
-		caddr = -1;
-		seqno = -1;
-		flag = f;
-		lftm = 0;
-		time = -1;
-		active_expire = 0;
-		nbbu = 0;
-		type = t;
-
-		nemo_prefix_ = -1;
-		eface_agent_ = eface_agent;
-		iface_agent_ = NULL;
-
-		switch ( t )
-		{
-		case BU_HA:
-			strcpy(info, "HA"); break;
-		case BU_BS:
-			strcpy(info, "BS"); break;
-		case BU_MN:
-			strcpy(info, "MN"); break;
-		case BS_ADS:
-			strcpy(info, "BS"); break;
-		case BU_RP:
-			strcpy(info, "RP"); break;
-		default:
-			strcpy(info, "CN"); break;
-		}
-	}
-	
-	//	Adding by MR
-	BUEntry(int address, Mipv6RegType t, int f, int home_addr, int nemo_prefix, NEMOAgent *eface_agent, NEMOAgent *iface_agent)
-	{
-		addr = address;
-		haddr = home_addr;
-		caddr = -1;
-		seqno = -1;
-		flag = f;
-		lftm = 0;
-		time = -1;
-		active_expire = 0;
-		nbbu = 0;
-		type = t;
-		
-		nemo_prefix_ = nemo_prefix;
-		eface_agent_ = eface_agent;
-		iface_agent_ = iface_agent;
-
-		switch ( t )
-		{
-		case BU_HA:
-			strcpy(info, "HA"); break;
-		case BU_BS:
-			strcpy(info, "BS"); break;
-		case BU_MN:
-			strcpy(info, "MN"); break;
-		case BS_ADS:
-			strcpy(info, "BS"); break;
-		case BU_RP:
-			strcpy(info, "RP"); break;
-		default:
-			strcpy(info, "CN"); break;
-		}
 	}
 	
 	~BUEntry() {}
@@ -254,51 +120,72 @@ public:
 	{
 		LIST_INSERT_HEAD(head, this, link);
 	}
-
-	inline void update_entry(int seq, int h, int c, double t, double life)
+	
+	inline void update_entry(int addr, int haddr)
 	{
-		seqno = seq;
-		haddr = h;
-		if ( c != NONE )
-		{
-			caddr = c;
-		}
-		time = t;
-		lftm = life;
-		nbbu++;
-		flag = ON;
+		addr_ = addr;
+		haddr_ = haddr;
 	}
-	
-//	inline int addr() { return addr;}
-//	inline int& haddr() { return haddr;}
-//	inline int& caddr() { return caddr; }
-//	inline Mipv6RegType& type() { return type; }
-	
+	inline void update_entry(int haddr, int caddr, int nemo_prefix)
+	{
+		haddr_ = haddr;
+		caddr_ = caddr;
+		nemo_prefix_ = nemo_prefix;
+	}
+	inline void update_entry(int addr, int haddr, NEMOAgent *eface_agent)
+	{
+		addr_ = addr;
+		haddr_ = haddr;
+		eface_agent_ = eface_agent;
+	}
+	inline void update_entry(int addr, int haddr, int nemo_prefix, NEMOAgent *eface_agent, NEMOAgent *iface_agent)
+	{
+		addr_ = addr;
+		haddr_ = haddr;
+		nemo_prefix_ = nemo_prefix;
+		eface_agent_ = eface_agent;
+		iface_agent_ = iface_agent;
+	}
+	inline void update_entry(int addr, int haddr, int caddr, int bid, int nemo_prefix, NEMOAgent *eface_agent, NEMOAgent *iface_agent)
+	{
+		addr_ = addr;
+		haddr_ = haddr;
+		caddr_ = caddr;
+		bid_ = bid;
+		nemo_prefix_ = nemo_prefix;
+		eface_agent_ = eface_agent;
+		iface_agent_ = iface_agent;
+	}
+
+	inline Mipv6NodeType& type() { return type_; }
+	inline int& addr() { return addr_;}
+	inline int& haddr() { return haddr_;}
+	inline int& caddr() { return caddr_; }
 	inline int& prefix() { return nemo_prefix_;} 
 	inline NEMOAgent* eface() { return eface_agent_;}
 	inline NEMOAgent* iface() { return iface_agent_;}
 
-	inline double expire() { return (time + lftm); }
-	inline double& lifetime() { return lftm; }
-	inline int activated(double now) {
-		return ((flag == ON) && (now<active_expire))?TRUE:FALSE;
-	}
-	inline void activate_entry(double now, double life) {
-		flag = ON;
-		if ( (now+life)>active_expire )
-		{
-			active_expire = now + life;
-		}
-	}
+//	inline double expire() { return (time + lftm); }
+//	inline double& lifetime() { return lftm; }
+//	inline int activated(double now) {
+//		return ((flag == ON) && (now<active_expire))?TRUE:FALSE;
+//	}
+//	inline void activate_entry(double now, double life) {
+//		flag = ON;
+//		if ( (now+life)>active_expire )
+//		{
+//			active_expire = now + life;
+//		}
+//	}
 
 	BUEntry* next_entry(void) const { return link.le_next; }
 	inline void remove_entry() { LIST_REMOVE(this, link);}
-	inline void remove_entry(struct bu_entry* newhead)
-	{
-		LIST_REMOVE(this, link);
-		LIST_INSERT_HEAD(newhead, this, link);
-	}
-	inline void deactivate_entry() { flag = OFF; }
+//	inline void remove_entry(struct bu_entry* newhead)
+//	{
+//		LIST_REMOVE(this, link);
+//		LIST_INSERT_HEAD(newhead, this, link);
+//	}
+//	inline void deactivate_entry() { flag = OFF; }
 
 protected:
 	LIST_ENTRY(BUEntry) link;
@@ -336,7 +223,7 @@ struct hdr_tunnel
 #define HDR_NEMO(p) ((struct hdr_nemo*)(p)->access(hdr_nemo::offset_))
 struct hdr_nemo
 {
-	Mipv6RegType optype_;
+	Mipv6RegType type_;
 	int A_;
 	int H_;
 	int R_;
@@ -352,7 +239,7 @@ struct hdr_nemo
 		return (hdr_nemo*) p->access(offset_);
 	}
 
-	inline Mipv6RegType& type() { return optype_; }
+	inline Mipv6RegType& type() { return type_; }
 	inline int& A() { return A_; }
 	inline int& H() { return H_; }
 	inline int& R() { return R_; }
@@ -518,17 +405,19 @@ class MIPV6Agent : public IFMNGMTAgent {
 	 
 		void dump();
 		
-		BUEntry* lookup_coa(int addr, BUEntry* n);
-		BUEntry* lookup_hoa(int addr, BUEntry* n);
-		BUEntry* lookup_entry(int addr, int coa, BUEntry* n);
-		BUEntry* head(struct bu_entry head) { return head.lh_first; }
+//		BUEntry* lookup_coa(int addr, BUEntry* n);
+//		BUEntry* lookup_hoa(int addr, BUEntry* n);
+//		BUEntry* lookup_entry(int addr, int coa, BUEntry* n);
+//		BUEntry* head(struct bu_entry head) { return head.lh_first; }
+		
 		void update_bu_entry(Packet* p, int flag);
 		
 		void send_bu_msg();
 		void send_mn_bu_msg(Packet* p, int prefix);
 		
-		void registration(Packet* p);
+		void registration(Packet* p, Mipv6NodeType type);
 		void send_bu_ack(Packet* p);
+		
 //		void send_bu_ack(Packet* p, Node* iface);
 		void recv_bu_ack(Packet* p);
 		void recv_nemo(Packet* p);
@@ -540,6 +429,8 @@ class MIPV6Agent : public IFMNGMTAgent {
 		NEMOAgent* get_eface_agent_by_prefix(int prefix);
 		BUEntry* get_entry_by_iface(Node *iface);
 		BUEntry* get_entry_by_prefix(int prefix);
+		BUEntry* get_entry_by_haddr(int haddr);
+//		BUEntry* get_entry_by_caddr(int caddr);
 		
 		int compute_new_address (int prefix, Node *interface);
 		
