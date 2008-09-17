@@ -117,8 +117,8 @@ $ns trace-all $f
 
 # set up for hierarchical routing (needed for routing over a basestation)
 $ns node-config -addressType hierarchical
-AddrParams set domain_num_  8                      ;# domain number
-AddrParams set cluster_num_ {1 1 1 1 1 1 1 1}            ;# cluster number for each domain 
+AddrParams set domain_num_  9                      ;# domain number
+AddrParams set cluster_num_ {1 1 1 1 1 1 1 1 1}            ;# cluster number for each domain 
 # 1st cluster: UMTS: 2 network entities + nb of mobile nodes
 # 2nd cluster: CN
 # 3rd cluster: core network
@@ -131,7 +131,8 @@ lappend tmp 2                                      ;# 802.11 MNs+BS
 lappend tmp 1                                      ;# MULTIFACE nodes 
 lappend tmp 1                                      ;# HA
 lappend tmp 2                                      ;# MR
-lappend tmp 1                                      ;# MR
+lappend tmp 1                                      ;# MN multi
+lappend tmp 1                                      ;# MR_HA
 
 AddrParams set nodes_num_ $tmp
 
@@ -179,16 +180,21 @@ set iface0 [$ns create-Umtsnode 0.0.2] ; #Node Id begins with 2.
 set router0 [$ns node 1.0.0]
 set router1 [$ns node 2.0.0]
 set router2 [$ns node 5.0.0]
+set router3 [$ns node 8.0.0]
+
 if {$quiet == 0} {
 	puts "router0: tcl=$router0; id=[$router0 id]; addr=[$router0 node-addr]"
 	puts "router1: tcl=$router1; id=[$router1 id]; addr=[$router1 node-addr]"
 	puts "router2: tcl=$router2; id=[$router2 id]; addr=[$router2 node-addr]"
+	puts "router3: tcl=$router3; id=[$router3 id]; addr=[$router3 node-addr]"
+	
 }
 
 # connect links 
 $ns duplex-link $rnc $router1 622Mbit 0.4ms DropTail 1000
 $ns duplex-link $router1 $router0 100MBit 30ms DropTail 1000
 $ns duplex-link $router1 $router2 100MBit 30ms DropTail 1000
+$ns duplex-link $router1 $router3 100MBit 30ms DropTail 1000
 $rnc add-gateway $router1
 
 # creation of the MutiFaceNodes. It MUST be done before the 802.11
@@ -232,7 +238,7 @@ $topo load_flatgrid $opt(x) $opt(y)
 #puts "Topology created"
 
 # create God
-create-god 14				                ;# give the number of nodes 
+create-god 15				                ;# give the number of nodes 
 
 
 # configure Access Points
@@ -467,12 +473,15 @@ $nemo_mr_iface1 connect-interface $nemo
 
 set mipv6_cn [$router0 install-default-ifmanager]
 set mipv6_ha	[$router2 install-default-ifmanager]
+set mipv6_mr_ha	[$router3 install-default-ifmanager]
 
 $mipv6_cn set-cn 5.0.0 5.0.1
 
 $mipv6_cn set-node-type $node_type(CN)
 
 $mipv6_ha set-node-type $node_type(MN_HA)
+
+$mipv6_mr_ha set-node-type $node_type(MR_HA)
 
 #
 #create traffic: TCP application between router0 and Multi interface node
@@ -649,8 +658,8 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$handover set-mr 5.0.0 5.0.2 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
-$handover set-mr 5.0.0 5.0.3 7.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+$handover set-mr 8.0.0 8.0.2 7.0.0 $nemo_mr_eface1 $nemo_mr_iface1
 
 $handover set-node-type $node_type(MR)
 
@@ -661,11 +670,11 @@ $handover set-node-type $node_type(MR)
 
 
 #Start the application 1sec before the MN is entering the WLAN cell
-$ns at [expr $moveStart - 1] "$cbr_ start"
+#$ns at [expr $moveStart - 1] "$cbr_ start"
 #$ns at 0 "$cbr_ start"
 
 #Stop the application according to another poisson distribution (note that we don't leave the 802.11 cell)
-$ns at [expr $moveStop  + 1] "$cbr_ stop"
+#$ns at [expr $moveStop  + 1] "$cbr_ stop"
 
 # set original status of interface. By default they are up..so to have a link up, 
 # we need to put them down first.
