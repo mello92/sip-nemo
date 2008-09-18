@@ -158,12 +158,12 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		{  // if MM Application exists
 			// re-assemble MM Application packet if segmented
 			hdr_mysip* mh = hdr_mysip::access(p);
-	//		printf("%s Udpmysip::recv app_ ==true,asm_seq=%d,seq=%d,nbytes=%d\n",PRINTADDR(addr()),asm_info.seq,mh->seq,mh->nbytes);
+			printf("%s Udpmysip::recv app_ ==true,asm_seq=%d,seq=%d,nbytes=%d\n",PRINTADDR(addr()),asm_info.seq,mh->seq,mh->nbytes);
 			if(mh->ack && (mh->method == 0 || mh->method == 1))
 			{
 			    cip_ = mh->cip;
 			    cport_ = mh->cport;
-	//		    printf("udpmysip::recv cip_:%d cport_:%d\n",cip_,cport_);
+			    printf("udpmysip::recv cip_:%d cport_:%d\n",cip_,cport_);
 			}
 
 			if(mh->seq == asm_info.seq)
@@ -178,7 +178,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				asm_info.rbytes = hdr_cmn::access(p)->size();
 			}
 			// if fully reassembled, pass the packet to application
-	//		printf("asm_info.tbytes %d == asm_info.rbytes %d\n",asm_info.tbytes,asm_info.rbytes);
+			printf("asm_info.tbytes %d == asm_info.rbytes %d\n",asm_info.tbytes,asm_info.rbytes);
 			if(asm_info.tbytes == asm_info.rbytes) {
 				printf("test1");
 				hdr_mysip mh_buf;
