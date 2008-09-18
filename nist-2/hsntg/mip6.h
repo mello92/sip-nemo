@@ -430,6 +430,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 		BUEntry* get_entry_by_iface(Node *iface);
 		BUEntry* get_entry_by_prefix(int prefix);
 		BUEntry* get_entry_by_haddr(int haddr);
+		BUEntry* get_entry_by_type(Mipv6NodeType type);
 //		BUEntry* get_entry_by_caddr(int caddr);
 		
 		int compute_new_address (int prefix, Node *interface);

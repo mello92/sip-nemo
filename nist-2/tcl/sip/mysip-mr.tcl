@@ -475,7 +475,7 @@ set mipv6_cn [$router0 install-default-ifmanager]
 set mipv6_ha	[$router2 install-default-ifmanager]
 set mipv6_mr_ha	[$router3 install-default-ifmanager]
 
-$mipv6_cn set-cn 5.0.0 5.0.1
+$mipv6_cn set-cn 5.0.0 5.0.3
 
 $mipv6_cn set-node-type $node_type(CN)
 
@@ -570,7 +570,8 @@ $router0 attach $udp_s 3
 $router2 attach $udp_server 3
 
 $udp_s set-mipv6 $mipv6_cn
-$udp_r set-mipv6 $handover
+#$udp_r set-mipv6 $handover
+$udp_r set-mipv6 $mipv6_mn
 
 #$udp_s target $mipv6_cn
 #$udp_r target $handover <-----no use
@@ -579,7 +580,8 @@ $udp_r set-mipv6 $handover
 
 
 $mipv6_cn set-udpmysip $udp_s
-$handover set-udpmysip $udp_r
+#$handover set-udpmysip $udp_r
+$mipv6_mn set-udpmysip $udp_r
 
 #$handover mipv6-interface $iface0
 
@@ -596,7 +598,8 @@ $handover set-udpmysip $udp_r
 
 #$ns connect $udp_s $udp_r 
 
-$multiFaceNode attach-agent $udp_r $iface0 3
+#$multiFaceNode attach-agent $udp_r $iface0 3
+$mnNode attach-agent $udp_r $nemo_node 3
 $handover add-flow $udp_r $udp_s $iface0 2 ;#2000.
 
 #[$iface0 set dmux_] install 3 $multiFaceNode
@@ -619,6 +622,8 @@ set mysipapp_server [new Application/mysipApp]
 $mysipapp_s attach-agent $udp_s
 $mysipapp_r attach-agent $udp_r
 $mysipapp_server attach-agent $udp_server
+
+$mysipapp_r set_addr [$nemo_node node-addr]
 
 $mysipapp_s set pktsize_ 1000
 $mysipapp_s set random_ false
