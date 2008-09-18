@@ -413,7 +413,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 		void update_bu_entry(Packet* p, int flag);
 		
 		void send_bu_msg();
-		void send_mn_bu_msg(Packet* p, int prefix);
+		void send_cn_bu_msg(Packet* p, int prefix);
 		
 		void registration(Packet* p, Mipv6NodeType type);
 		void send_bu_ack(Packet* p);
@@ -430,6 +430,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 		BUEntry* get_entry_by_iface(Node *iface);
 		BUEntry* get_entry_by_prefix(int prefix);
 		BUEntry* get_entry_by_haddr(int haddr);
+		BUEntry* get_entry_by_addr(int addr);
 		BUEntry* get_entry_by_type(Mipv6NodeType type);
 //		BUEntry* get_entry_by_caddr(int caddr);
 		
