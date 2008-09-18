@@ -45,13 +45,6 @@ int mysipApp::command(int argc, const char*const* argv)
   //0402
   if (argc == 2 )
   {
-//	  if ( strcmp(argv[1], "renew_addr") == 0 )
-//	  	{
-//		  agent_->new_addr =STR2ADDR(argv[2]);
-//		  agent_->addr()=STR2ADDR(argv[2]);
-//		  printf("%s %d\n",argv[2],agent_->new_addr);
-//		  return(TCL_OK);
-//	  	}
       
 	  if ( strcmp(argv[1], "dump_handoff_info") == 0 )
 	  {
@@ -68,6 +61,14 @@ int mysipApp::command(int argc, const char*const* argv)
 
   if (argc == 3) 
   {
+	  if ( strcmp(argv[1], "set_addr") == 0 )
+	  	 {
+	  		  agent_->new_addr =STR2ADDR(argv[2]);
+	  		  agent_->addr()=STR2ADDR(argv[2]);
+	  		  printf("%s %d\n",argv[2],agent_->new_addr);
+	  		  return(TCL_OK);
+	  	 }
+	  
 		if ( strcmp(argv[1], "registration") == 0 )
 		{
 						agent_->new_addr =STR2ADDR(argv[2]);
