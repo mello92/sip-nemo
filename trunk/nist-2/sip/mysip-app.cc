@@ -201,13 +201,17 @@ void mysipApp::send_mysip_data()
     sip_buf.nbytes = pktsize_;  // Size of MM packet (NOT UDP packet size)
     sip_buf.time = Scheduler::instance().clock(); // Current time
     sip_buf.scale = scale_;                       // Current scale value
-    sip_buf.method = 1;
+    sip_buf.method = 7;
     sip_buf.requestURL = contact_dst_addr;
     sip_buf.From = agent_->addr();
+    sip_buf.From_id = myID;
     sip_buf.To = agent_->daddr();
+    sip_buf.To_id = toID;
     sip_buf.CSeq = 1;
     sip_buf.contact = agent_->get_new_addr();
-    //show_sipheader((const char*) &sip_buf);
+    sip_buf.contact_id = myID;
+//    show_sipheader((const char*) &sip_buf);
+//    show_sipheader(&sip_buf);
     agent_->sendmsg(pktsize_, (char*) &sip_buf);  // send to UDP
 
    snd_timer_.resched(0.01);

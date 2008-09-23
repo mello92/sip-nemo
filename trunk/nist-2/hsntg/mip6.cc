@@ -149,6 +149,7 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 //				return TCL_OK;
 //			return TCL_ERROR;
 //		}
+		
 		if (strcmp(argv[1], "set-node-type")==0)
 		{
 			switch (atoi(argv[2]))
@@ -662,8 +663,13 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 	//----------------sem start------------------//
 	printf("MIPv6Agent::process_new_prefix\n");
 	compute_new_address (data->prefix, data->interface);
-	 
-	send_bu_msg(data->prefix, data->interface);
+	if(udpmysip_!=0 )
+	{
+		printf("sip enable\n");
+		udpmysip_->send_reg_msg(data->prefix, data->interface);
+	}
+	else	
+		send_bu_msg(data->prefix, data->interface);
 	//----------------sem end------------------//
 	
 	free(data);

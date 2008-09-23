@@ -355,7 +355,12 @@ void Handover1::process_new_prefix (new_prefix* data)
   compute_new_address (data->prefix, data->interface);
   
   //----------------sem start------------------//
-//  if(get_ha()!=0)
+	if(udpmysip_!=0 )
+	{
+		printf("sip enable\n");
+		udpmysip_->send_reg_msg(data->prefix, data->interface);
+	}
+	else	
 	  send_bu_msg(data->prefix, data->interface);
   //----------------sem end------------------//
 

@@ -80,6 +80,7 @@ Mac/802_11 set debug_ 0
 #Mac/802_11 set debug_ 1
 
 Agent/NEMO set debug_ 1
+Agent/UDP/Udpmysip set debug_ 1
 
 #Rate at which the nodes start moving
 set moveStart 10
@@ -137,6 +138,7 @@ lappend tmp 1                                      ;# MR_HA
 AddrParams set nodes_num_ $tmp
 
 array set node_type {MN 0 MN_HA 1 MR 2 MR_HA 3 CN 4}
+array set node_type_sip {SIP_MN 0 SIP_MN_HA 1 SIP_MR 2 SIP_MR_HA 3 SIP_CN 4}
 
 # configure UMTS. 
 # Note: The UMTS configuration MUST be done first otherwise it does not work
@@ -560,45 +562,29 @@ $mih add-mac $tmp2
 set udp_s [new Agent/UDP/Udpmysip]
 set udp_r [new Agent/UDP/Udpmysip]
 set udp_server [new Agent/UDP/Udpmysip]
-#$ns attach-agent $router0 $udp_s 3
-#$ns attach-agent $multiFaceNode $udp_r	3
-#
-#$ns attach-agent $router1 $udp_server 3
+
+set udp_mr_ha [new Agent/UDP/Udpmysip]
+set udp_mr [new Agent/UDP/Udpmysip]
+
+$udp_s set-node-type $node_type_sip(SIP_CN)
+$udp_r set-node-type $node_type_sip(SIP_MN)
+$udp_server set-node-type $node_type_sip(SIP_MN_HA)
+$udp_mr_ha set-node-type $node_type_sip(SIP_MR_HA)
+$udp_mr set-node-type $node_type_sip(SIP_MR)
+
+$udp_r set-sip-mn 88 5.0.0 8888 5.0.0 $nemo_mn_eface1
+$udp_mr set-sip-mr 88 8.0.0 9999 8.0.0 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 $router0 attach $udp_s 3
-#$router1 attach $udp_server 3
 $router2 attach $udp_server 3
-
-$udp_s set-mipv6 $mipv6_cn
-#$udp_r set-mipv6 $handover
-$udp_r set-mipv6 $mipv6_mn
-
-#$udp_s target $mipv6_cn
-#$udp_r target $handover <-----no use
+$router3 attach $udp_mr_ha 3
 
 
+$mipv6_cn set-udpmysip $udp_s
+$mipv6_mn set-udpmysip $udp_r
+$handover set-udpmysip $udp_mr
 
-
-#$mipv6_cn set-udpmysip $udp_s <- no sip
-#$handover set-udpmysip $udp_r
-#$mipv6_mn set-udpmysip $udp_r <- no sip
-
-#$handover mipv6-interface $iface0
-
-#$iface0 attach $udp_r 3
-#$iface1 attach $udp_r 3
-
-#[$multiFaceNode set dmux_] install 3 $udp_r
-
-#[$router1 set dmux_] install 3 $udp_server
-#[$router0 set dmux_] install 3 $udp_s
-#[$iface0 set dmux_] install 3 $udp_r
-#[$iface1 set dmux_] install 3 $udp_r
-#$multiFaceNode add-target $udp_r 3
-
-#$ns connect $udp_s $udp_r 
-
-#$multiFaceNode attach-agent $udp_r $iface0 3
+$multiFaceNode attach-agent $udp_mr $iface0 3
 $mnNode attach-agent $udp_r $nemo_node 3
 $handover add-flow $udp_r $udp_s $iface0 2 ;#2000.
 
@@ -613,7 +599,8 @@ set dch2 [$ns create-dch $iface0 $nemo_mr_eface1]
 $udp_s set packetSize_ 1000
 $udp_r set packetSize_ 1000
 $udp_server set packetSize_ 1000
-
+$udp_mr_ha set packetSize_ 1000
+$udp_mr set packetSize_ 1000
 
 #Setup a MM Application
 set mysipapp_s [new Application/mysipApp]
@@ -663,7 +650,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 7 "$mysipapp_s send_invite 9999 5.0.1"
+$ns at 7 "$mysipapp_s send_invite 8888 5.0.0"
 $ns at [expr $moveStop + 40] "$mysipapp_r dump_handoff_info" 
 
 $handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
