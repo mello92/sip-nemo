@@ -158,7 +158,25 @@ void Handover1::process_link_up (link_up_t *e)
     debug ("\tCase2: sending RS\n");
     ((MIPV6Agent*)this)->send_rs(this->get_mih()->get_mac(e->linkIdentifier.macMobileTerminal));
   }
+  //----------------sem start------------------//
+  else{
 
+	  Mac *mac = mih_->get_mac(e->linkIdentifier.macMobileTerminal);
+	  //get_interface(e->linkIdentifier.macMobileTerminal)->getMac());
+	  //get_mac(e->linkIdentifier.macMobileTerminal);
+	  Tcl& tcl = Tcl::instance();
+	  tcl.evalf("%s get-node", mac->name());
+	  Node *node = (Node*)TclObject::lookup(tcl.result());
+	  
+	  if(udpmysip_!=0 )
+	 	  {
+	 		  printf("sip enable\n");
+	 		  udpmysip_->send_reg_msg(0, node);
+	 	  }
+	 	  else	
+	 		  send_bu_msg(0, node);
+  	}
+  //----------------sem end------------------//
   free (e);
 }
 
@@ -358,7 +376,7 @@ void Handover1::process_new_prefix (new_prefix* data)
 	if(udpmysip_!=0 )
 	{
 		printf("sip enable\n");
-		udpmysip_->send_reg_msg(data->prefix, data->interface);
+		//udpmysip_->send_reg_msg(data->prefix, data->interface);
 	}
 	else	
 	  send_bu_msg(data->prefix, data->interface);
