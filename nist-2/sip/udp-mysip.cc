@@ -34,13 +34,14 @@ public:
 
 
 // Constructor (with no arg)
-UdpmysipAgent::UdpmysipAgent() : UdpAgent(),mipv6_(NULL)
+UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL),flag(1)//, mysipapp_(NULL)
 {
+	LIST_INIT(&siplist_head_);
 	bind("packetSize_",&size_);
 	support_mm_ = 0;
 	session_run = 0;
 	//new_addr = 0;
-	printf("UdpmysipA() new_addr=%d\n",new_addr);
+//	printf("UdpmysipA() new_addr=%d\n",new_addr);
 	asm_info.seq = -1;
 }
 
@@ -50,6 +51,77 @@ int UdpmysipAgent::command(int argc, const char*const* argv) {
 			mipv6_= (MIPV6Agent *) TclObject::lookup(argv[2]);
 			if(mipv6_==0)
 				return TCL_ERROR;
+			return TCL_OK;
+		}
+//		if (strcmp(argv[1], "set-mysipapp")==0) {
+//			mysipapp_ = (mysipApp *) TclObject::lookup(argv[2]);
+//			if(mysipapp_==0)
+//				return TCL_ERROR;
+//			return TCL_OK;
+//		}
+		if (strcmp(argv[1], "set-node-type")==0)
+		{
+			switch (atoi(argv[2]))
+			{
+			case SIP_MN:
+				node_type_ = SIP_MN;
+				break;
+			case SIP_MN_HA:
+				node_type_ =  SIP_MN_HA;
+				break;
+			case SIP_MR:
+				node_type_ = SIP_MR;
+				break;
+			case SIP_MR_HA:
+				node_type_ = SIP_MR_HA;
+				break;
+			case SIP_CN:
+				node_type_ = SIP_CN;
+				break;
+			default:
+				debug("no match type\n");
+				return TCL_ERROR;
+				break;
+			}
+			debug("node_type_ %d\n",node_type_);
+			return TCL_OK;
+		}
+	}
+	if (argc==7) 
+	{
+		if (strcmp(argv[1], "set-sip-mn")==0) 
+		{
+			int add_id_ = atoi(argv[2]);
+			int add_ = Address::instance().str2addr(argv[3]);
+			int url_id_ = atoi(argv[4]);
+			int url_ = Address::instance().str2addr(argv[5]);
+			NEMOAgent *eface_agent_ = (NEMOAgent *)TclObject::lookup(argv[6]);		// external interface nemo agent
+			if (eface_agent_==NULL)
+				return TCL_ERROR;
+			SIPEntry* sip = new SIPEntry(SIP_MN_HA);
+			sip->mn_init_entry(add_id_, add_, url_id_, url_, eface_agent_);
+			sip->insert_entry(&siplist_head_);
+			dump();
+			return TCL_OK;
+		}
+	}
+	if (argc==9)
+	{
+		if (strcmp(argv[1], "set-sip-mr")==0) 
+		{
+			int add_id_ = atoi(argv[2]);
+			int add_ = Address::instance().str2addr(argv[3]);
+			int url_id_ = atoi(argv[4]);
+			int url_ = Address::instance().str2addr(argv[5]);
+			int nemo_prefix_ = Address::instance().str2addr(argv[6]);							//	nemo prefix
+			NEMOAgent *eface_agent_ = (NEMOAgent *)TclObject::lookup(argv[7]);		// external interface nemo agent
+			NEMOAgent *iface_agent_ = (NEMOAgent *)TclObject::lookup(argv[8]);		// internal interface nemo agent
+			if (eface_agent_==NULL && iface_agent_==NULL)
+				return TCL_ERROR;
+			SIPEntry* sip = new SIPEntry(SIP_MR_HA);
+			sip->mr_init_entry(add_id_, add_, url_id_, url_, nemo_prefix_, eface_agent_, iface_agent_);
+			sip->insert_entry(&siplist_head_);
+			dump();
 			return TCL_OK;
 		}
 	}
@@ -101,7 +173,7 @@ void UdpmysipAgent::sendmsg(int nbytes, const char* flags)
 		siph->scale = 0;
 		// mm udp packets are distinguished by setting the ip
 		// priority bit to 15 (Max Priority).
-
+		
 		if(support_mm_) {
 			ih->prio_ = 15;
 			memcpy(siph, flags, sizeof(hdr_mysip));
@@ -127,16 +199,47 @@ void UdpmysipAgent::sendmsg(int nbytes, const char* flags)
 		// add "beginning of talkspurt" labels (tcl/ex/test-rcvr.tcl)
 		if (flags && (0 ==strcmp(flags, "NEW_BURST")))
 			rh->flags() |= RTP_M;
-		printf("UdpmysipAgent\n\tsaddr() %s:%d daddr()=%s:%d\n\tnew_addr=%s\n",PRINTADDR(ih->saddr()),ih->sport(),PRINTADDR(ih->daddr()),ih->dport(),PRINTADDR(new_addr));
 		
-		if(mipv6_!=0 )
-		{
-			printf("mipv6 enable\n");
-			mipv6_->tunneling(p);
+		//----------------sem start------------------//
+		hdr_ip* iph = HDR_IP(p);
+		hdr_mysip *mh= HDR_MYSIP(p);
+		if(node_type_==SIP_MN) {
+			
+			int prefix = iph->saddr() & 0xFFFFF800;
+			debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+			
+			iph->daddr() = prefix;
+			iph->dport() = port();
+			
+			SIPEntry* bu = get_entry_by_type(SIP_MN_HA);
+			assert(bu!=NULL);
+			Packet* p_tunnel = p->copy();
+			bu->eface()->send(p_tunnel,0);
+			debug("At %f UdpmysipAgent MN in %s send tunnel packet to %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			flag=0;
+			
+		}else if(node_type_==SIP_MR_HA) {
+			if(mh->method==5)
+			{
+				printf("SIP_MR_HA register");
+				
+			}
 		}
-		else	
-
-		target_->recv(p);
+		//----------------sem end------------------//
+		
+		printf("UdpmysipAgent\n\tsaddr() %s:%d daddr()=%s:%d\n\tnew_addr=%s\n",PRINTADDR(ih->saddr()),ih->sport(),PRINTADDR(ih->daddr()),ih->dport(),PRINTADDR(new_addr));
+				
+		if(flag==1){
+			if(mipv6_!=0 )
+			{
+				printf("mipv6 enable\n");
+				mipv6_->tunneling(p);
+			}
+			else	
+				target_->recv(p);
+		}
+		flag=1;
 		
 	}
 	idle();
@@ -146,10 +249,150 @@ void UdpmysipAgent::sendmsg(int nbytes, const char* flags)
 // Support Packet Re-Assembly and Multimedia Application
 void UdpmysipAgent::recv(Packet* p, Handler*)
 {
-	printf("recv!!\n");
+	debug("At %f UdpmysipAgent Agent in %s recv packet \n", NOW, MYNUM);
 	hdr_ip* ih = hdr_ip::access(p);
 	int bytes_to_deliver = hdr_cmn::access(p)->size();
 	//printf("UdpmysipAgent recv ih->prio_ ==%d\n",ih->prio_);
+	
+	//----------------sem start------------------//
+	hdr_ip* iph = HDR_IP(p);
+	hdr_cmn *hdrc= HDR_CMN(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	if(node_type_ == SIP_MR) {
+		if(mh->method==5)
+		{
+			//	mn has ha, register myself and change mn contact to mr-ha contact
+			//	mn has no ha, register myself
+			SIPEntry* bu = get_entry_by_url_id(mh->contact_id);
+			if(!bu)
+			{
+				registration(p,SIP_MN);
+				dump();
+			}
+			
+			int prefix = iph->saddr() & 0xFFFFF800;
+							
+			bu= get_entry_by_prefix(prefix);
+
+			assert(bu!=NULL);
+
+			//	change change mn contact to mr-ha contact
+			mh->contact=bu->url();
+			mh->contact_id=bu->url_id();
+			
+			show_sipheader(p);
+			
+			//	chage daddr to mn ha
+			//	we use header tunnel in mip
+			iph->daddr() = mh->requestURL;
+				
+			Packet* p_tunnel = p->copy();
+
+			bu->eface()->send(p_tunnel,0);
+			//bu->eface()->send_bu_ha(p_tunnel);
+			//bu->eface()->recv(p_tunnel,0);
+			
+			debug("At %f UdpmysipAgent MR in %s tunnel register packet to %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+						
+		}
+		else if(mh->method==0 || mh->method==7)
+		{
+			debug("At %f UdpmysipAgent MR in %s recv invite packet\n", NOW, MYNUM);
+			
+			SIPEntry* bu = get_entry_by_url_id(mh->To_id);
+			
+			assert(bu!=NULL);
+			
+			int prefix = bu->con() & 0xFFFFF800;
+			
+			debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+			
+			iph->daddr() = bu->con();
+			
+			Packet* p_tunnel = p->copy();
+			get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
+			
+			debug("At %f UdpmysipAgent MR in %s send invite packet to %s\n", 
+								NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			//send_temp_move_pkt(p);
+			//send_temp_move_nemo(p);
+			ih->prio_ = 14;
+		}
+		else if(mh->method==1)
+		{
+			//SIPEntry* bu = get_entry_by_url_id(iph->daddr());
+			SIPEntry* bu = get_entry_by_type(SIP_MR_HA);
+			assert(bu!=NULL);
+			iph->daddr() = mh->requestURL;
+			mh->contact= bu->con();
+			Packet* p_tunnel = p->copy();
+			bu->eface()->send(p_tunnel,0);
+			debug("At %f UdpmysipAgent MR in %s send 200ok packet to %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			ih->prio_ = 14;
+		}
+		
+		
+	} else if(node_type_ == SIP_MR_HA) {
+		if(mh->method==5)
+		{
+			if(iph->daddr()==addr()) {
+				registration(p,SIP_MR);
+				dump();
+				debug("At %f UdpmysipAgent MR_HA in %s recv register packet\n", NOW, MYNUM);
+//				if (nh->A()==ON) 
+//				{
+//					send_bu_ack(p);
+//				}
+
+			} else {
+//				iph->saddr()=addr();
+//				Packet* p_untunnel = p->copy();
+//				send(p_untunnel,0);
+				debug("At %f UdpmysipAgent MR_HA in %s send register packet to MN_HA or CN %s\n", 
+						NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			}
+		}
+		if(mh->method==0)
+		{
+			debug("At %f UdpmysipAgent MR_HA in %s recv invite packet\n", NOW, MYNUM);
+			send_temp_move_pkt(p);
+			ih->prio_ = 14;
+		}
+	} else if(node_type_ == SIP_MN_HA) {
+		if(mh->method==5)
+		{
+			registration(p,SIP_MN);
+			dump();
+			debug("At %f UdpmysipAgent MN_HA in %s recv register packet\n", NOW, MYNUM);
+		}
+		if(mh->method==0)
+		{
+			debug("At %f UdpmysipAgent MN_HA in %s recv invite packet\n", NOW, MYNUM);
+			send_temp_move_pkt(p);
+			ih->prio_ = 14;
+		}
+	} else if(node_type_ == SIP_MN) {
+		if(mh->method==0)
+		{
+			debug("At %f UdpmysipAgent MN in %s recv invite packet\n", NOW, MYNUM);
+		}
+	} else if(node_type_ == SIP_CN){
+		if(mh->method==6)
+		{
+			debug("SIP_CN temp_move\n");
+			//registration(p, SipNodeType type)
+			debug("At %f UdpmysipAgent CN in %s recv invite packet\n", NOW, MYNUM);
+			send_invite_to_temp_move_pkt(p);
+			ih->prio_ = 14;
+		}
+		if(mh->method==1)
+		{
+			hdrc->size()-=20;
+		}
+	}
+	//----------------sem end------------------//
 
 	// if it is a MM packet (data or ack)
 	if(ih->prio_ == 15) { 
@@ -157,7 +400,10 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		if(app_) 
 		{  // if MM Application exists
 			// re-assemble MM Application packet if segmented
-			hdr_mysip* mh = hdr_mysip::access(p);
+//			hdr_mysip* mh = hdr_mysip::access(p);
+			
+			printf("node_type_ %d\n",node_type_);
+			
 			printf("%s Udpmysip::recv app_ ==true,asm_seq=%d,seq=%d,nbytes=%d\n",PRINTADDR(addr()),asm_info.seq,mh->seq,mh->nbytes);
 			if(mh->ack && (mh->method == 0 || mh->method == 1))
 			{
@@ -204,3 +450,266 @@ void UdpmysipAgent::info_new_addr(int newaddr)
    if(session_run==1) app_->send_invite_pkt();
 
 }
+
+void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
+{
+	SIPEntry *sip =  siplist_head_.lh_first;
+	assert(sip!=NULL);
+	
+	sip->con() = iface->address();
+	
+	Packet *p = allocpkt();
+	hdr_ip *iph= HDR_IP(p);
+	//hdr_cmn *hdrc= HDR_CMN(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	
+	mh->ack = 1;  // this pregisteret is register pregisteret
+	mh->time = NOW;
+	mh->seq = -2;         // MM sequece number
+	mh->nbytes = 200;  // register pregisteret size is 40 Bytes
+	//mh->scale = p_accnt.last_scale;
+	mh->method = 5;
+	mh->requestURL = sip->add();
+	mh->requestURL_id = sip->add_id();
+	mh->From_id = sip->url_id();
+	mh->From = sip->url();
+	mh->To_id = sip->url_id();
+	mh->To = sip->url();
+	//mh->CSeq = 0;
+	mh->contact_id = sip->url_id();
+	mh->contact = iface->address();
+	mh->cport = 3;
+	
+	show_sipheader(p);
+	
+	iph->saddr() = iface->address();
+	iph->daddr() = sip->add();
+	iph->dport() = port();
+	
+	
+	if(node_type_==SIP_MR)
+	{
+		debug("MR node reg \n");
+		
+		
+		Tcl& tcl = Tcl::instance();
+		tcl.evalf("%s entry", iface->name());
+		NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+		Scheduler::instance().schedule(obj,p->copy(),0.1);
+	
+	} else {
+	
+		if(sip!=NULL) {
+				debug("MN node reg \n");
+				
+				
+				
+			} else {
+				
+				debug("LFN node reg \n");
+				
+				
+				
+			}
+
+			iph->daddr() = prefix;
+			
+			sip->eface()->send(p,0);
+		
+	}
+	
+	debug(
+			"At %f UdpmysipAgent in %s send registraion message using interface %s\n", 
+			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
+	
+}
+
+void UdpmysipAgent::dump() {
+	
+	SIPEntry *node =  siplist_head_.lh_first;
+	
+	if (node) {
+		
+		cout <<"\n|"<< "SIP Binding Update List" << " for node "<< PRINTADDR(addr()) <<" at "<< NOW <<"\n";
+		cout <<"|Type\tAddr \t URL_ID@URL \t CON_ID@CON \t NEMO_prefixe \t eFace \t iFace \n";
+
+		for (; node; node=node->next_entry() ) {
+			if(node->eface()!=NULL && node->iface()!=NULL) {
+				
+				cout <<" | "<< node->type() <<" \t \t " 
+					<< node->add_id() <<"@" << PRINTADDR(node->add()) << "\t"
+					<< node->url_id() <<"@" << PRINTADDR(node->url()) << "\t"
+					<< node->con_id() <<"@" << PRINTADDR(node->con()) << "\t"
+					<< PRINTADDR(node->prefix()) << "\t"
+					<< PRINTADDR(node->eface()->get_iface()->address()) << "\t" 
+					<< PRINTADDR(node->iface()->get_iface()->address()) << "\n";
+				
+			} else {
+				
+				cout <<" | "<< node->type() <<" \t \t " 
+					<< node->add_id() <<"@" << PRINTADDR(node->add()) << "\t"
+					<< node->url_id() <<"@" << PRINTADDR(node->url()) << "\t"
+					<< node->con_id() <<"@" << PRINTADDR(node->con()) << "\t"
+					<< PRINTADDR(node->prefix()) << "\n";
+				
+			}
+		}
+
+		cout << "\n";
+	}
+}
+
+void UdpmysipAgent::show_sipheader(Packet* p)
+{
+	hdr_mysip *msg= HDR_MYSIP(p);
+	cout	<<"sipH method: "<< msg->method << "\t"
+				<<" reqURL: " << msg->requestURL_id <<"@"<< PRINTADDR(msg->requestURL) << endl
+				<<" From: " << msg->From_id <<"@"<< PRINTADDR(msg->From) << endl
+				<<" To: " << msg->To_id <<"@"<< PRINTADDR(msg->To)  << endl
+				<<" contact: "<< msg->contact_id <<"@"<< PRINTADDR(msg->contact) << endl  
+				<<" CSeq: "<< msg->CSeq << endl  
+				<<" cip: "<< PRINTADDR(msg->cip) << endl
+				<<" cport: "<< msg->cport << endl
+				<< endl;
+}
+
+void UdpmysipAgent::registration(Packet* p, SipNodeType type)
+{
+//	hdr_ip *iph= HDR_IP(p);
+	hdr_mysip* mh= HDR_MYSIP(p);
+
+
+//	printf("UdpmysipAgent::registration hdr_mysip---> coa %s haddr %s r %d\n",
+//			Address::instance().print_nodeaddr(nh->coa()), Address::instance().print_nodeaddr(nh->haddr()), nh->R() );
+
+	if(type==SIP_MR)
+	{
+		SIPEntry* bu = get_entry_by_url_id(mh->contact_id);
+		if(!bu)
+		{
+			bu = new SIPEntry(SIP_MR);
+			bu->update_entry(mh->From_id,mh->From,mh->contact_id,mh->contact);
+			bu->insert_entry(&siplist_head_);
+		}
+		bu->con()=mh->contact;
+
+	} 
+	else if (type==SIP_MN)
+	{
+		SIPEntry* bu = get_entry_by_url_id(mh->contact_id);
+		if(!bu)
+		{
+			bu = new SIPEntry(SIP_MN);
+			bu->update_entry(mh->From_id,mh->From,mh->contact_id,mh->contact);
+			bu->insert_entry(&siplist_head_);
+		}
+		bu->con()=mh->contact;
+	}
+//	else if (type==CN)
+//	{
+//
+//	}
+}
+
+SIPEntry* UdpmysipAgent::get_entry_by_url_id(int url_id)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->url_id()==url_id) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+
+SIPEntry* UdpmysipAgent::get_entry_by_prefix(int prefix)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->prefix()==prefix) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+SIPEntry* UdpmysipAgent::get_entry_by_iface(Node *iface)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->eface()->get_iface()==iface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+SIPEntry* UdpmysipAgent::get_entry_by_type(SipNodeType type)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==type) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+NEMOAgent* UdpmysipAgent::get_iface_agent_by_prefix(int prefix)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->prefix()==prefix) {
+			return bu->iface();
+		}
+	}
+	return NULL;
+}
+
+void UdpmysipAgent::send_temp_move_pkt(Packet* p)
+{
+	hdr_ip *iph= HDR_IP(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	
+	SIPEntry* bu = get_entry_by_url_id(mh->requestURL_id);
+	if(!bu)
+	{
+		//	return error;
+	} else {
+		mh->method = 6;
+		
+		mh->contact_id = bu->con_id();
+		mh->contact = bu->con();		
+		iph->daddr() = iph->saddr();
+		iph->dport() = port();
+		
+	}
+	show_sipheader(p);
+	Packet* p_temp_move = p->copy();
+	send(p_temp_move,0);
+	debug("At %f UdpmysipAgent MR_HA or MN_HA in %s send temp_move packet\n", NOW, MYNUM);
+}
+
+void UdpmysipAgent::send_invite_to_temp_move_pkt(Packet* p)
+{
+	hdr_ip *iph= HDR_IP(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	
+	iph->daddr()=mh->contact;
+	iph->dport()=port();
+	mh->method = 0;
+	
+	mh->requestURL_id = mh->contact_id;
+	mh->requestURL = mh->contact;
+//	mh->To_id = mh->contact_id;
+//	mh->To = mh->contact;
+	mh->contact_id = mh->From_id;
+	mh->contact = mh->From;
+	
+	show_sipheader(p);
+	Packet* p_invite = p->copy();
+	send(p_invite,0);
+	debug("At %f UdpmysipAgent CN in %s send invite packet\n", NOW, MYNUM);
+}
+

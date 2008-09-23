@@ -395,6 +395,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 //  inline int get_ha() { return ha_; }
   
   //----------------sem start------------------//
+	UdpmysipAgent* udpmysip_;
 //  NEMOAgent *nemo_;
 	//----------------sem end------------------//
 
@@ -443,7 +444,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 		
 		Mipv6NodeType node_type_;
 
-		UdpmysipAgent* udpmysip_;
+
 //		Node* iface_node_;
 	 //----------------sem end------------------//
 	 

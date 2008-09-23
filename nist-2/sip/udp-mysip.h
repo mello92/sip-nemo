@@ -15,7 +15,116 @@
 #define PRINTADDR(a) Address::instance().print_nodeaddr(a)
 #define STR2ADDR(a) Address::instance().str2addr(a)
 
-#include "../hsntg/mip6.h"
+
+#include "mip6.h"
+#include "nemo.h"
+
+typedef enum {
+	SIP_MN, SIP_MN_HA, SIP_MR, SIP_MR_HA, SIP_CN
+} SipNodeType;
+
+class MEMOAgent;
+
+class SIPEntry;
+
+LIST_HEAD(sip_entry, SIPEntry);
+
+class SIPEntry
+{
+public:
+	SipNodeType type_;
+	int addr_id_;
+	int addr_;
+	int url_id_;
+	int url_;
+	int contact_id_;
+	int contact_;
+	
+	int cid_;
+	int nemo_prefix_;
+	NEMOAgent *eface_agent_;
+	NEMOAgent *iface_agent_;
+
+	SIPEntry(SipNodeType type)
+	{
+		type_ = type;
+		addr_id_ = -1;
+		addr_ = -1;
+		url_id_ = -1;
+		url_ = -1;
+		contact_id_= -1;
+		contact_ = -1;
+		nemo_prefix_ = -1;
+		eface_agent_ = NULL;
+		iface_agent_ = NULL;
+	}
+	
+	~SIPEntry() {}
+
+	inline void insert_entry(struct sip_entry* head)
+	{
+		LIST_INSERT_HEAD(head, this, link);
+	}
+	inline void mn_init_entry(int addr_id, int addr, int url_id, int url, NEMOAgent *eface_agent)
+	{
+		addr_id_ = addr_id;
+		addr_ = addr;
+		url_id_ = url_id;
+		url_ = url;
+		eface_agent_ = eface_agent;
+	}
+	
+	inline void mr_init_entry(int addr_id, int addr, int url_id, int url, int nemo_prefix, NEMOAgent *eface_agent, NEMOAgent *iface_agent)
+	{
+		addr_id_ = addr_id;
+		addr_ = addr;
+		url_id_ = url_id;
+		url_ = url;
+		nemo_prefix_ = nemo_prefix;
+		eface_agent_ = eface_agent;
+		iface_agent_ = iface_agent;
+	}
+	
+	inline void update_entry(int url_id, int url, int contact_id, int contact)
+	{
+		url_id_ = url_id;
+		url_ = url;
+		contact_id_= contact_id;
+		contact_ = contact;
+	}
+	
+	inline void update_entry(int addr_id, int addr, int url_id, int url, int contact_id, int contact, int nemo_prefix, NEMOAgent *eface_agent, NEMOAgent *iface_agent)
+	{
+		addr_id_ = addr_id;
+		addr_ = addr;
+		url_id_ = url_id;
+		url_ = url;
+		contact_id_= contact_id;
+		contact_ = contact;
+		nemo_prefix_ = nemo_prefix;
+		eface_agent_ = eface_agent;
+		iface_agent_ = iface_agent;
+	}
+
+	inline SipNodeType& type() { return type_; }
+	inline int& add_id() { return addr_id_;}
+	inline int& add() { return addr_; }
+	inline int& url_id() { return url_id_;}
+	inline int& url() { return url_;}
+	inline int& con_id() { return contact_id_; }
+	inline int& con() { return contact_; }
+	inline int& prefix() { return nemo_prefix_;} 
+	inline NEMOAgent* eface() { return eface_agent_;}
+	inline NEMOAgent* iface() { return iface_agent_;}
+
+	SIPEntry* next_entry(void) const { return link.le_next; }
+	inline void remove_entry() { LIST_REMOVE(this, link);}
+
+protected:
+	LIST_ENTRY(SIPEntry) link;
+};
+
+#define HDR_MYSIP(p) ((struct hdr_mysip*)(p)->access(hdr_mysip::offset_))
 
 // Multimedia Header Structure
 struct hdr_mysip {
@@ -77,14 +186,34 @@ public:
 	int cip_;
 	int cport_;
 	
+	void send_reg_msg(int prefix, Node *iface);
+	
 protected:
 	int support_mm_; // set to 1 if above is mysipApp
 	
 	MIPV6Agent *mipv6_;
-	
+	SipNodeType node_type_;
+//	mysipApp *mysipapp_;
 private:
+	//----------------sem start------------------//
+	struct sip_entry siplist_head_;
+	void dump();
+	void show_sipheader(Packet* p);
+	void registration(Packet* p, SipNodeType type);
+	SIPEntry*  get_entry_by_url_id(int url_id);
+	SIPEntry* get_entry_by_prefix(int prefix);
+	SIPEntry* get_entry_by_iface(Node *iface);
+	SIPEntry* get_entry_by_type(SipNodeType type);
+	NEMOAgent* get_iface_agent_by_prefix(int prefix);
+	
+	
+	
+	void send_temp_move_pkt(Packet* p);
+	void send_invite_to_temp_move_pkt(Packet* p);
+	
 	asm_mm asm_info; // packet re-assembly information
 	int session_run;
+	int flag;
 };
 
 #endif
