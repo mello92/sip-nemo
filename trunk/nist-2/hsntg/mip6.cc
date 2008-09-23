@@ -1455,7 +1455,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			//	register if mn not in the binding table 
 			
 			delete_tunnel(p);
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			Packet* p_untunnel = p->copy();
 			send(p_untunnel,0);
 			

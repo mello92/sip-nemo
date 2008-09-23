@@ -397,7 +397,7 @@ set nd_mn [$iface1 install-nd]
 set nd_nemo [$nemo install-nd]
 $nd_nemo set-router TRUE
 $nd_nemo router-lifetime 18
-$ns at 4 "$nd_nemo start-ra"
+$ns at 2 "$nd_nemo start-ra"
 
 #set ifmgmt_nemo [$nemo install-default-ifmanager]
 #set mih_nemo [$nemo install-mih]
@@ -574,6 +574,7 @@ $udp_mr set-node-type $node_type_sip(SIP_MR)
 
 $udp_r set-sip-mn 88 5.0.0 8888 5.0.0 $nemo_mn_eface1
 $udp_mr set-sip-mr 88 8.0.0 9999 8.0.0 6.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+$udp_mr set-sip-mr 88 8.0.0 9998 8.0.0 7.0.0 $nemo_mr_eface1 $nemo_mr_iface1
 
 $router0 attach $udp_s 3
 $router2 attach $udp_server 3

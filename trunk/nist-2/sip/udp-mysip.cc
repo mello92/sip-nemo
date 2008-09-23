@@ -34,7 +34,7 @@ public:
 
 
 // Constructor (with no arg)
-UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL),flag(1)//, mysipapp_(NULL)
+UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL), node_type_(SIP_CN), flag(1)//, mysipapp_(NULL)
 {
 	LIST_INIT(&siplist_head_);
 	bind("packetSize_",&size_);
@@ -298,7 +298,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		else if(mh->method==0 || mh->method==7)
 		{
-			debug("At %f UdpmysipAgent MR in %s recv invite packet\n", NOW, MYNUM);
+			debug("At %f UdpmysipAgent MR in %s recv packet\n", NOW, MYNUM);
 			
 			SIPEntry* bu = get_entry_by_url_id(mh->To_id);
 			
@@ -313,7 +313,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			Packet* p_tunnel = p->copy();
 			get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 			
-			debug("At %f UdpmysipAgent MR in %s send invite packet to %s\n", 
+			debug("At %f UdpmysipAgent MR in %s send packet to %s\n", 
 								NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 			//send_temp_move_pkt(p);
 			//send_temp_move_nemo(p);
@@ -322,7 +322,10 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		else if(mh->method==1)
 		{
 			//SIPEntry* bu = get_entry_by_url_id(iph->daddr());
-			SIPEntry* bu = get_entry_by_type(SIP_MR_HA);
+			//SIPEntry* bu = get_entry_by_type(SIP_MR_HA);
+			int prefix = iph->saddr() & 0xFFFFF800;
+			
+			SIPEntry* bu = get_entry_by_prefix(prefix);
 			assert(bu!=NULL);
 			iph->daddr() = mh->requestURL;
 			mh->contact= bu->con();
@@ -453,14 +456,17 @@ void UdpmysipAgent::info_new_addr(int newaddr)
 
 void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
 {
-	SIPEntry *sip =  siplist_head_.lh_first;
+//	SIPEntry *sip =  siplist_head_.lh_first;
+//	assert(sip!=NULL);
+	SIPEntry *sip = get_entry_by_iface(iface);
 	assert(sip!=NULL);
+	
 	
 	sip->con() = iface->address();
 	
 	Packet *p = allocpkt();
 	hdr_ip *iph= HDR_IP(p);
-	//hdr_cmn *hdrc= HDR_CMN(p);
+	hdr_cmn *hdrc= HDR_CMN(p);
 	hdr_mysip *mh= HDR_MYSIP(p);
 	
 	mh->ack = 1;  // this pregisteret is register pregisteret
@@ -486,6 +492,7 @@ void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
 	iph->daddr() = sip->add();
 	iph->dport() = port();
 	
+	hdrc->size() = 200;
 	
 	if(node_type_==SIP_MR)
 	{
