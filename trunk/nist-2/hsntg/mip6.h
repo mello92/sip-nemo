@@ -378,6 +378,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 //  void send_bu_msg(Node *iface);
   void send_bu_msg(int prefix, Node *iface);
 	void tunneling(Packet* p);
+	void send_bu_msg_when_break(Node *iface);
   //----------------sem end------------------//
   
  protected:
@@ -429,10 +430,12 @@ class MIPV6Agent : public IFMNGMTAgent {
 		NEMOAgent* get_iface_agent_by_prefix(int prefix);
 		NEMOAgent* get_eface_agent_by_prefix(int prefix);
 		BUEntry* get_entry_by_iface(Node *iface);
+		BUEntry* get_entry_without_iface(Node *iface);
 		BUEntry* get_entry_by_prefix(int prefix);
 		BUEntry* get_entry_by_haddr(int haddr);
 		BUEntry* get_entry_by_addr(int addr);
 		BUEntry* get_entry_by_type(Mipv6NodeType type);
+		
 //		BUEntry* get_entry_by_caddr(int caddr);
 		
 		int compute_new_address (int prefix, Node *interface);

@@ -159,23 +159,23 @@ void Handover1::process_link_up (link_up_t *e)
     ((MIPV6Agent*)this)->send_rs(this->get_mih()->get_mac(e->linkIdentifier.macMobileTerminal));
   }
   //----------------sem start------------------//
-  else{
-
-	  Mac *mac = mih_->get_mac(e->linkIdentifier.macMobileTerminal);
-	  //get_interface(e->linkIdentifier.macMobileTerminal)->getMac());
-	  //get_mac(e->linkIdentifier.macMobileTerminal);
-	  Tcl& tcl = Tcl::instance();
-	  tcl.evalf("%s get-node", mac->name());
-	  Node *node = (Node*)TclObject::lookup(tcl.result());
-	  
-	  if(udpmysip_!=0 )
-	 	  {
-	 		  printf("sip enable\n");
-	 		  udpmysip_->send_reg_msg(0, node);
-	 	  }
-	 	  else	
-	 		  send_bu_msg(0, node);
-  	}
+//  else{
+//
+//	  Mac *mac = mih_->get_mac(e->linkIdentifier.macMobileTerminal);
+//	  //get_interface(e->linkIdentifier.macMobileTerminal)->getMac());
+//	  //get_mac(e->linkIdentifier.macMobileTerminal);
+//	  Tcl& tcl = Tcl::instance();
+//	  tcl.evalf("%s get-node", mac->name());
+//	  Node *node = (Node*)TclObject::lookup(tcl.result());
+//	  
+//	  if(udpmysip_!=0 )
+//	 	  {
+//	 		  printf("sip enable\n");
+//	 		  udpmysip_->send_reg_msg(0, node);
+//	 	  }
+//	 	  else	
+//	 		  send_bu_msg(0, node);
+//  	}
   //----------------sem end------------------//
   free (e);
 }
@@ -188,99 +188,114 @@ void Handover1::process_link_down (link_down_t *e)
 {
   //We look if there is any flow that uses this interface.
   //if yes, then we need to switch to another interface
-  vector <FlowEntry*> flows;
-  MIHInterfaceInfo **mac_infos;
-  int nb_mac_infos;
-  int best_index, best_type, found=0;
+//  vector <FlowEntry*> flows;
+//  MIHInterfaceInfo **mac_infos;
+//  int nb_mac_infos;
+//  int best_index, best_type, found=0;
 
   debug ("At %f in %s Handover1 received link down \n\tMacAddr=%d\n", \
 	 NOW, Address::instance().print_nodeaddr(addr()),\
 	 e->linkIdentifier.macMobileTerminal);
-
-  if (connectingMac_ != -1) {
-    //another link went down but we know we are connecting to another one
-    //it may also be the one from the handover
-    debug ("\tWe are connecting to another interface, we don't look for another one\n");
-    return;
-  }
-
-  //get the flows
-  flows = get_flows ();
-  //get list of interfaces
-  mac_infos = mih_-> get_interfaces ();
-  nb_mac_infos = mih_->get_nb_interfaces ();
-
-  //get the first one 
-  best_index = 0 ; 
-  if (nb_mac_infos > 0) {
-    while (best_index < nb_mac_infos && (mac_infos[best_index]->getMacAddr() == e->linkIdentifier.macMobileTerminal
-	 || mac_infos[best_index]->getStatus() != LINK_STATUS_UP))
-      best_index++ ;
- 
-    if (best_index < nb_mac_infos){
-      found = 1;
-      best_type = mac_infos[best_index]->getType();
-    }
-  }
-  for (int mac_index = best_index+1 ; mac_index < nb_mac_infos ; mac_index++) {
-    if (mac_infos[mac_index]->getMacAddr() != e->linkIdentifier.macMobileTerminal
-	&& mac_infos[mac_index]->getStatus() == LINK_STATUS_UP) {
-      //maybe we can use this one..
-      if ( (best_type == LINK_802_11 && mac_infos[mac_index]->getType() == LINK_ETHERNET)
-	   || (best_type == LINK_802_16 && (mac_infos[mac_index]->getType() == LINK_802_11 
-					  || mac_infos[mac_index]->getType() == LINK_ETHERNET))
-	   || (best_type == LINK_UMTS && (mac_infos[mac_index]->getType() == LINK_802_16 
-					  || mac_infos[mac_index]->getType() == LINK_802_11
-					  || mac_infos[mac_index]->getType() == LINK_ETHERNET))){
-	best_type = mac_infos[mac_index]->getType();
-	best_index = mac_index;
-      }
-    }
-  }
-  //check if we found another better one
-  if (found) {
-    Tcl& tcl = Tcl::instance();
-    Node *node;
-    
-    tcl.evalf ("%s get-node",  mac_infos[best_index]->getMac()->name());
-
-    node = (Node*) TclObject::lookup(tcl.result());
-
-    //we transfert the flows 
-    for (int i=0 ; i < (int)flows.size() ; i++) {
-      debug ("Studying flow %d using interface %s\n", i, Address::instance().print_nodeaddr(flows.at(i)->interface()->address()));
-      //find the interface the flow is using
-      if ( flows.at(i)->interface() != node){
-	//we redirect this flow to the new interface
-	//Node *new_node;
-	//tcl.evalf ("%s get-node", mac_infos[best_index]->getMac()->name());
-	//new_node = (Node*) TclObject::lookup(tcl.result());
-	debug ("\tMust redirect this flow to use interface %s\n",Address::instance().print_nodeaddr(node->address()));
-	tcl.evalf ("%s target [%s entry]", flows.at(i)->local()->name(), node->name());
-	send_update_msg (flows.at(i)->remote(),node);
-	flows.at(i)->update_interface(node);
-      }
-    }
-  }
-  else {
-    debug ("\tNo better interface found :-(\n");
-  } 
-  //scan 802.16 802.11
-  if (e->linkIdentifier.type == LINK_802_16 || e->linkIdentifier.type == LINK_802_11) {
-    struct mih_scan_request_s *req = (struct mih_scan_request_s *) malloc (sizeof (struct mih_scan_request_s));
-    struct mih_scan_req_entry_s *entry = (struct mih_scan_req_entry_s *) malloc (sizeof (struct mih_scan_req_entry_s)); 
-    req->nbElement = 1;
-    req->requestSet = entry;
-    req->requestSet[0].linkIdentifier = e->linkIdentifier;    
-    int macAddr = e->linkIdentifier.macMobileTerminal;
-    map<int,int>::iterator iter = pending_scan.find(macAddr);
-    if(iter ==  pending_scan.end()){
-      pending_scan[macAddr] = 1;
-      mih_->mih_scan (this, mih_->getID(), req);
-    }
-  }
-  free (mac_infos);
-  free (e);
+  
+  //----------------sem start------------------//
+//	  Mac *mac = mih_->get_mac(e->linkIdentifier.macMobileTerminal);
+//	  Tcl& tcl = Tcl::instance();
+//	  tcl.evalf("%s get-node", mac->name());
+//	  Node *node = (Node*)TclObject::lookup(tcl.result());
+//	  
+//	  if(udpmysip_!=0 )
+//	 	  {
+//	 		  printf("sip enable\n");
+//	 		  udpmysip_->send_reg_msg_when_break(node);
+//	 	  }
+//	 	  else	
+//	 		  send_bu_msg_when_break(node);
+  //----------------sem end------------------//
+  
+//  if (connectingMac_ != -1) {
+//    //another link went down but we know we are connecting to another one
+//    //it may also be the one from the handover
+//    debug ("\tWe are connecting to another interface, we don't look for another one\n");
+//    return;
+//  }
+//
+//  //get the flows
+//  flows = get_flows ();
+//  //get list of interfaces
+//  mac_infos = mih_-> get_interfaces ();
+//  nb_mac_infos = mih_->get_nb_interfaces ();
+//
+//  //get the first one 
+//  best_index = 0 ; 
+//  if (nb_mac_infos > 0) {
+//    while (best_index < nb_mac_infos && (mac_infos[best_index]->getMacAddr() == e->linkIdentifier.macMobileTerminal
+//	 || mac_infos[best_index]->getStatus() != LINK_STATUS_UP))
+//      best_index++ ;
+// 
+//    if (best_index < nb_mac_infos){
+//      found = 1;
+//      best_type = mac_infos[best_index]->getType();
+//    }
+//  }
+//  for (int mac_index = best_index+1 ; mac_index < nb_mac_infos ; mac_index++) {
+//    if (mac_infos[mac_index]->getMacAddr() != e->linkIdentifier.macMobileTerminal
+//	&& mac_infos[mac_index]->getStatus() == LINK_STATUS_UP) {
+//      //maybe we can use this one..
+//      if ( (best_type == LINK_802_11 && mac_infos[mac_index]->getType() == LINK_ETHERNET)
+//	   || (best_type == LINK_802_16 && (mac_infos[mac_index]->getType() == LINK_802_11 
+//					  || mac_infos[mac_index]->getType() == LINK_ETHERNET))
+//	   || (best_type == LINK_UMTS && (mac_infos[mac_index]->getType() == LINK_802_16 
+//					  || mac_infos[mac_index]->getType() == LINK_802_11
+//					  || mac_infos[mac_index]->getType() == LINK_ETHERNET))){
+//	best_type = mac_infos[mac_index]->getType();
+//	best_index = mac_index;
+//      }
+//    }
+//  }
+//  //check if we found another better one
+//  if (found) {
+//    Tcl& tcl = Tcl::instance();
+//    Node *node;
+//    
+//    tcl.evalf ("%s get-node",  mac_infos[best_index]->getMac()->name());
+//
+//    node = (Node*) TclObject::lookup(tcl.result());
+//
+//    //we transfert the flows 
+//    for (int i=0 ; i < (int)flows.size() ; i++) {
+//      debug ("Studying flow %d using interface %s\n", i, Address::instance().print_nodeaddr(flows.at(i)->interface()->address()));
+//      //find the interface the flow is using
+//      if ( flows.at(i)->interface() != node){
+//	//we redirect this flow to the new interface
+//	//Node *new_node;
+//	//tcl.evalf ("%s get-node", mac_infos[best_index]->getMac()->name());
+//	//new_node = (Node*) TclObject::lookup(tcl.result());
+//	debug ("\tMust redirect this flow to use interface %s\n",Address::instance().print_nodeaddr(node->address()));
+//	tcl.evalf ("%s target [%s entry]", flows.at(i)->local()->name(), node->name());
+//	send_update_msg (flows.at(i)->remote(),node);
+//	flows.at(i)->update_interface(node);
+//      }
+//    }
+//  }
+//  else {
+//    debug ("\tNo better interface found :-(\n");
+//  } 
+//  //scan 802.16 802.11
+//  if (e->linkIdentifier.type == LINK_802_16 || e->linkIdentifier.type == LINK_802_11) {
+//    struct mih_scan_request_s *req = (struct mih_scan_request_s *) malloc (sizeof (struct mih_scan_request_s));
+//    struct mih_scan_req_entry_s *entry = (struct mih_scan_req_entry_s *) malloc (sizeof (struct mih_scan_req_entry_s)); 
+//    req->nbElement = 1;
+//    req->requestSet = entry;
+//    req->requestSet[0].linkIdentifier = e->linkIdentifier;    
+//    int macAddr = e->linkIdentifier.macMobileTerminal;
+//    map<int,int>::iterator iter = pending_scan.find(macAddr);
+//    if(iter ==  pending_scan.end()){
+//      pending_scan[macAddr] = 1;
+//      mih_->mih_scan (this, mih_->getID(), req);
+//    }
+//  }
+//  free (mac_infos);
+//  free (e);
 }
 
 /*
@@ -346,9 +361,9 @@ void Handover1::process_exp_prefix (exp_prefix* data)
  */
 void Handover1::process_new_prefix (new_prefix* data)
 {
-  MIHInterfaceInfo *config;
-  MIHInterfaceInfo **mac_infos;
-  int nb_mac_infos;
+//  MIHInterfaceInfo *config;
+//  MIHInterfaceInfo **mac_infos;
+//  int nb_mac_infos;
   vector <FlowEntry*> flows;
   vector <Agent*> flows_to_redirect;
   Mac *mac;
@@ -376,59 +391,59 @@ void Handover1::process_new_prefix (new_prefix* data)
 	if(udpmysip_!=0 )
 	{
 		printf("sip enable\n");
-		//udpmysip_->send_reg_msg(data->prefix, data->interface);
+		udpmysip_->send_reg_msg(data->prefix, data->interface);
 	}
 	else	
 	  send_bu_msg(data->prefix, data->interface);
   //----------------sem end------------------//
 
 
-  //send capability request on new interface
-  mih_->send_cap_disc_req (this, mac);
-
-  config = mih_->get_interface (mac->addr());
-  //Get the node of the new interface 
-  Node *new_node = data->interface;
-
-  //redirect the flows to this interface
-  flows = get_flows ();
-  mac_infos = mih_->get_interfaces ();
-  nb_mac_infos = mih_->get_nb_interfaces ();
-  //for each interface
-  for (int mac_index = 0 ; mac_index < nb_mac_infos ; mac_index++) {
-    //compare to the new one
-    if (mac_infos[mac_index]->getType() == LINK_UMTS && (config->getType() == LINK_802_16 || config->getType() == LINK_802_11 ||config->getType() == LINK_ETHERNET)
-	|| mac_infos[mac_index]->getType() == LINK_802_16 && (config->getType() == LINK_802_11 ||config->getType() == LINK_ETHERNET)
-	|| (mac_infos[mac_index]->getType() == LINK_802_11 && config->getType() == LINK_ETHERNET)
-	|| mac_infos[mac_index]->getMac() == mac) {
-      debug ("\tThe new up interface is better...checking for flows to redirect\n");
-      //get the flows that are using this interface
-      Node *node;
-      tcl.evalf ("%s get-node", mac_infos[mac_index]->getMac()->name());
-      node = (Node*) TclObject::lookup(tcl.result());
-      for (int i=0 ; i < (int)flows.size() ; i++) {
-	debug ("Studying flow %d using interface %s\n", i, Address::instance().print_nodeaddr(flows.at(i)->interface()->address()));
-	//find the interface the flow is using
-	if ( flows.at(i)->interface() == node){
-	  //we redirect this flow to the new interface
-	  debug ("\tMust redirect flow from interface %s to %s\n",	\
-		 Address::instance().print_nodeaddr(flows.at(i)->interface()->address()), \
-		 Address::instance().print_nodeaddr(new_node->address()));
-	  //flows.at(i)->tmp_iface = new_node;
-	  tcl.evalf ("%s target [%s entry]", flows.at(i)->local()->name(), new_node->name());
-	  flows_to_redirect.push_back (flows.at(i)->remote());
-	  flows.at(i)->update_interface(data->interface);
-	}
-      }
-    }
-  }
- 
-  if ((int) flows_to_redirect.size()>0) {
-    send_update_msg (flows_to_redirect,data->interface);
-  } 
-
-  free (mac_infos);
-  free (data);
+//  //send capability request on new interface
+//  mih_->send_cap_disc_req (this, mac);
+//
+//  config = mih_->get_interface (mac->addr());
+//  //Get the node of the new interface 
+//  Node *new_node = data->interface;
+//
+//  //redirect the flows to this interface
+//  flows = get_flows ();
+//  mac_infos = mih_->get_interfaces ();
+//  nb_mac_infos = mih_->get_nb_interfaces ();
+//  //for each interface
+//  for (int mac_index = 0 ; mac_index < nb_mac_infos ; mac_index++) {
+//    //compare to the new one
+//    if (mac_infos[mac_index]->getType() == LINK_UMTS && (config->getType() == LINK_802_16 || config->getType() == LINK_802_11 ||config->getType() == LINK_ETHERNET)
+//	|| mac_infos[mac_index]->getType() == LINK_802_16 && (config->getType() == LINK_802_11 ||config->getType() == LINK_ETHERNET)
+//	|| (mac_infos[mac_index]->getType() == LINK_802_11 && config->getType() == LINK_ETHERNET)
+//	|| mac_infos[mac_index]->getMac() == mac) {
+//      debug ("\tThe new up interface is better...checking for flows to redirect\n");
+//      //get the flows that are using this interface
+//      Node *node;
+//      tcl.evalf ("%s get-node", mac_infos[mac_index]->getMac()->name());
+//      node = (Node*) TclObject::lookup(tcl.result());
+//      for (int i=0 ; i < (int)flows.size() ; i++) {
+//	debug ("Studying flow %d using interface %s\n", i, Address::instance().print_nodeaddr(flows.at(i)->interface()->address()));
+//	//find the interface the flow is using
+//	if ( flows.at(i)->interface() == node){
+//	  //we redirect this flow to the new interface
+/*//	  debug ("\tMust redirect flow from interface %s to %s\n",	\
+//		 Address::instance().print_nodeaddr(flows.at(i)->interface()->address()), \
+//		 Address::instance().print_nodeaddr(new_node->address()));
+*///	  //flows.at(i)->tmp_iface = new_node;
+//	  tcl.evalf ("%s target [%s entry]", flows.at(i)->local()->name(), new_node->name());
+//	  flows_to_redirect.push_back (flows.at(i)->remote());
+//	  flows.at(i)->update_interface(data->interface);
+//	}
+//      }
+//    }
+//  }
+// 
+//  if ((int) flows_to_redirect.size()>0) {
+//    send_update_msg (flows_to_redirect,data->interface);
+//  } 
+//
+//  free (mac_infos);
+//  free (data);
   
 }
 

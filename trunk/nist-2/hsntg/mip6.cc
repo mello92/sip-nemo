@@ -1271,6 +1271,10 @@ void MIPV6Agent::tunneling(Packet* p)
 			
 		} else {
 			//	daddr search by haddr is in binding table 
+			//	check saddr is in the binding table (CN)  
+			//	if not -> create a new CN binding entry
+			//	
+			
 			add_tunnel(p);
 			//debug("bu->addr() %s \n",Address::instance().print_nodeaddr(bu->addr()));
 			int prefix = bu->addr() & 0xFFFFF800;
@@ -1702,7 +1706,17 @@ BUEntry* MIPV6Agent::get_entry_by_iface(Node *iface)
 {
 	BUEntry *bu =  bulist_head_.lh_first;
 	for(;bu;bu=bu->next_entry()) {
-		if(bu->eface()->get_iface()==iface) {
+		if(bu->eface()!=NULL && bu->eface()->get_iface()==iface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+BUEntry* MIPV6Agent::get_entry_without_iface(Node *iface)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->eface()->get_iface()!=iface && bu->eface()!=NULL ) {
 			return bu;
 		}
 	}
@@ -1761,3 +1775,29 @@ BUEntry* MIPV6Agent::get_entry_by_type(Mipv6NodeType type)
 	}
 	return NULL;
 }
+
+void MIPV6Agent::send_bu_msg_when_break(Node *iface)
+{
+	BUEntry* bu = get_entry_by_iface(iface);
+	BUEntry* bu_other = get_entry_without_iface(iface);
+	
+	assert(bu!=NULL);
+	assert(bu_other!=NULL);
+	
+	//	we need to consider packet outside
+//	bu->caddr() = bu_other->caddr();
+//	bu->eface() = bu_other->eface();
+//	
+//	Packet *p = allocpkt();
+//	hdr_ip *iph = HDR_IP(p);
+//	hdr_cmn *hdrc = HDR_CMN(p);
+//	hdr_nemo *nh = HDR_NEMO(p);
+//	
+//	nh->coa()=bu_other->caddr();
+//	nh->H()=ON;
+//	nh->A()=ON;
+//	nh->type()=BU;
+//	nh->lifetime()=TIME_INFINITY;
+//	nh->
+}
+
