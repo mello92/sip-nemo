@@ -40,8 +40,8 @@ global ns
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 
 # (1,n,n)
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
-
+#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
 # seed the default RNG
 global defaultRNG
@@ -82,6 +82,7 @@ Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set debug_ 1
 Agent/MIHUser/IFMNGMT/MIPV6	set debug_ 1
 Mac/802_11 set debug_ 0
 #Mac/802_11 set debug_ 1
+Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set confidence_th_ 100
 
 Agent/NEMO set debug_ 1
 
@@ -730,9 +731,9 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 7 "$mysipapp_s send_invite 9999 5.0.1"
+$ns at 60 "$mysipapp_s send_invite 9999 5.0.1"
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
-$ns at [expr $moveStop + 40] "$mysipapp_r dump_handoff_info" 
+$ns at [expr $moveStop - 40] "$mysipapp_r dump_handoff_info" 
 
 
 #(1,1,n)
@@ -740,15 +741,14 @@ $ns at [expr $moveStop + 40] "$mysipapp_r dump_handoff_info"
 #$handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 
-#(1,1,n)
-#$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
-#$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+#(1,n,1)
+$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 
 #(1,n,n)
-#$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
-$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
-$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+#$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+#$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 
 $handover set-node-type $node_type(MR)
@@ -775,8 +775,8 @@ $ns at $moveStart "puts \"At $moveStart Mobile Node starts moving\""
 #$ns at [expr $moveStart+10] "puts \"++At [expr $moveStart+10] Mobile Node enters wlan\""
 #$ns at [expr $moveStart+110] "puts \"++At [expr $moveStart+110] Mobile Node leaves wlan\""
 $ns at $moveStop "puts \"Mobile Node stops moving\""
-$ns at [expr $moveStop + 10] "puts \"Simulation ends at [expr $moveStop+10]\"" 
-$ns at [expr $moveStop + 10] "finish" 
+$ns at [expr $moveStop - 40] "puts \"Simulation ends at [expr $moveStop+10]\"" 
+$ns at [expr $moveStop - 40] "finish" 
 
 if {$quiet == 0} {
 puts " Simulation is running ... please wait ..."

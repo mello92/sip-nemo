@@ -187,6 +187,7 @@ public:
 	int cport_;
 	
 	void send_reg_msg(int prefix, Node *iface);
+	void re_homing(Node *iface);
 	
 protected:
 	int support_mm_; // set to 1 if above is mysipApp
@@ -203,10 +204,11 @@ private:
 	SIPEntry*  get_entry_by_url_id(int url_id);
 	SIPEntry* get_entry_by_prefix(int prefix);
 	SIPEntry* get_entry_by_iface(Node *iface);
+	SIPEntry* get_entry_without_iface(Node *iface);
 	SIPEntry* get_entry_by_type(SipNodeType type);
 	NEMOAgent* get_iface_agent_by_prefix(int prefix);
 	
-	
+	SIPEntry* get_mr_ha_entry_by_caddr(int caddr);
 	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);
