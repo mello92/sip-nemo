@@ -122,6 +122,7 @@ MIPV6Agent::MIPV6Agent() : IFMNGMTAgent(), udpmysip_(NULL) {
 //	LIST_INIT(&history_head_);
 	flowRequestTimer_ = new FlowRequestTimer (this);
 	seqNumberFlowRequest_ = 0;
+	bind("exp_", &exp_);
 	bind("flowRequestTimeout_", &flowRequestTimeout_);
 }
 
@@ -885,6 +886,23 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 				send(p_tunnel,0);
 			}else
 					recv_bu_ack(p);
+		} else if (nh->type()==REHOME)
+		{
+			delete_tunnel(p);
+			BUEntry* bu = get_entry_by_haddr(nh->haddr());
+			assert(bu!=NULL);
+			bu->caddr()=nh->coa();
+			
+			nh->haddr()=nh->coa();
+			nh->coa()=iph->saddr();
+			registration(p, MR);
+			dump();
+			
+			debug("At %f MIPv6 MR_HA Agent in %s recv REHOME packet\n", NOW, MYNUM);
+//								if (nh->A()==ON) 
+//								{
+//									send_bu_ack(p);
+//								}
 		}
 		
 	}
@@ -1386,7 +1404,9 @@ void MIPV6Agent::tunneling(Packet* p)
 		//	delete tunnel and look up daddr 
 		//	daddr is in binding table?
 		//	Yes -> send to MR caddr 
-		//	add tunnel and change addr to MR and port
+		//		search if caddr is another MR-HA
+		//		Yes -> send to another MR-HA
+		//		NO ->	add tunnel and change addr to MR and port
 		//	No ->	is nemo prefix? 
 		//	Yes -> send to addr 
 		//	NO -> add tunnel and chage addr to addr
@@ -1404,25 +1424,56 @@ void MIPV6Agent::tunneling(Packet* p)
 			bu = get_entry_by_prefix(prefix);
 			if(!bu)
 			{
-				printf("not find\n");
 				add_tunnel(p);
 				iph->daddr()=iph->daddr();
 				iph->dport()=port();
 				Packet* p_tunnel = p->copy();
 				send(p_tunnel,0);
 			} else {
-				printf("find\n");
-				add_tunnel(p);
-				iph->daddr()=bu->caddr();
-				iph->dport()=port();
+				debug("find nemo prefix\n");
+				
+				BUEntry* other_ha = get_entry_by_haddr(bu->caddr());
+				if(!other_ha)
+				{
+					add_tunnel(p);
+					iph->daddr()=bu->caddr();
+					iph->dport()=port();
+
+				} else {
+					debug("find other_ha\n");
+					add_tunnel(p);
+					iph->daddr()=other_ha->haddr();
+					iph->dport()=port();
+					add_tunnel(p);
+					iph->daddr()=other_ha->caddr();
+					iph->dport()=port();
+				}
+				
+				
 				Packet* p_tunnel = p->copy();
 				send(p_tunnel,0);
 			}
 						
 		}else{
 			//add_tunnel(p);
-			iph->daddr()=bu->caddr();
-			iph->dport()=port();
+			BUEntry* other_ha = get_entry_by_haddr(bu->caddr());
+			
+			if(!other_ha)
+			{
+				iph->daddr()=bu->caddr();
+				iph->dport()=port();
+							
+			} else {
+				debug("find other_ha\n");
+				//add_tunnel(p);
+				iph->daddr()=other_ha->haddr();
+				iph->dport()=port();
+				add_tunnel(p);
+				iph->daddr()=other_ha->caddr();
+				iph->dport()=port();
+			}
+				
+			
 
 			Packet* p_tunnel = p->copy();
 			send(p_tunnel,0);
@@ -1819,6 +1870,30 @@ void MIPV6Agent::re_homing(Node *iface)
 	hdr_cmn *hdrc = HDR_CMN(p);
 	hdr_nemo *nh = HDR_NEMO(p);
 	
+	debug("mipv6 exp_ %d\n ",exp_);
+	
+	if(exp_==4)
+	{
+		
+		nh->coa()=bu_new->haddr();
+		nh->haddr()=bu_break->haddr();
+		nh->H()=ON;
+		nh->A()=ON;
+		nh->type()=REHOME;
+
+		iph->saddr()=bu_new->addr();
+		iph->daddr()=bu_break->addr();
+		iph->dport()=port();
+		hdrc->ptype()=PT_NEMO;
+		hdrc->size()= IPv6_HEADER_SIZE + BU_SIZE;
+		
+		add_tunnel(p);
+		iph->saddr()=bu_new->caddr();
+		iph->daddr()=bu_break->addr();
+		iph->dport()=port();
+		
+	} else {
+	
 	nh->coa()=bu_new->caddr();
 	nh->haddr()=bu_break->haddr();
 	nh->H()=ON;
@@ -1833,12 +1908,19 @@ void MIPV6Agent::re_homing(Node *iface)
 	
 	add_tunnel(p);
 	
-//	bu_new->eface()->send(p,0);
+	}
 	
-	Tcl& tcl = Tcl::instance();
-	tcl.evalf("%s entry", bu_new->eface()->get_iface()->name());
-	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
-	Scheduler::instance().schedule(obj,p->copy(),0.1);
+	
+	
+	bu_new->eface()->send(p,0);
+	
+	debug("At %f MIPv6 MR  in %s re_homing to %s\n", 
+						NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+	
+//	Tcl& tcl = Tcl::instance();
+//	tcl.evalf("%s entry", bu_new->eface()->get_iface()->name());
+//	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+//	Scheduler::instance().schedule(obj,p->copy(),0.1);
 	
 	
 	//Node* iface =  bu_new->eface()->get_iface()->name();
