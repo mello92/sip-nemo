@@ -214,7 +214,7 @@ void mysipApp::send_mysip_data()
 //    show_sipheader(&sip_buf);
     agent_->sendmsg(pktsize_, (char*) &sip_buf);  // send to UDP
 
-//   snd_timer_.resched(0.01);
+   snd_timer_.resched(0.01);
 /*     
  *     FILE *op;
  *     op = fopen(filename,"a");
