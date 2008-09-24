@@ -270,11 +270,18 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				dump();
 			}
 			
+			//	choise mn entry
+			SIPEntry* mn = get_entry_by_url_id(mh->contact_id);
+			
 			int prefix = iph->saddr() & 0xFFFFF800;
 							
 			bu= get_entry_by_prefix(prefix);
 
 			assert(bu!=NULL);
+			
+			//	chage mn entry contact to outside coa
+			mn->con()=bu->con();
+			dump();
 
 			//	change change mn contact to mr-ha contact
 			mh->contact=bu->url();
@@ -300,15 +307,24 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		{
 			debug("At %f UdpmysipAgent MR in %s recv packet\n", NOW, MYNUM);
 			
-			SIPEntry* bu = get_entry_by_url_id(mh->To_id);
+			SIPEntry* bu = get_entry_by_url_id(mh->From_id);
+			
+			if(!bu)
+			{
+				registration(p,SIP_CN);
+				dump();
+			}
+			
+			bu = get_entry_by_url_id(mh->To_id);
 			
 			assert(bu!=NULL);
 			
-			int prefix = bu->con() & 0xFFFFF800;
+			int prefix = bu->add() & 0xFFFFF800;
 			
 			debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
 			
-			iph->daddr() = bu->con();
+			iph->daddr() = bu->add();
+			
 			
 			Packet* p_tunnel = p->copy();
 			get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
@@ -323,9 +339,14 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		{
 			//SIPEntry* bu = get_entry_by_url_id(iph->daddr());
 			//SIPEntry* bu = get_entry_by_type(SIP_MR_HA);
-			int prefix = iph->saddr() & 0xFFFFF800;
+//			int prefix = iph->saddr() & 0xFFFFF800;
+//
+//			SIPEntry* bu = get_entry_by_prefix(prefix);
 			
-			SIPEntry* bu = get_entry_by_prefix(prefix);
+			SIPEntry* mn = get_entry_by_type(SIP_MN);
+			assert(mn!=NULL);
+			SIPEntry* bu = get_mr_ha_entry_by_caddr(mn->con());
+
 			assert(bu!=NULL);
 			iph->daddr() = mh->requestURL;
 			mh->contact= bu->con();
@@ -363,6 +384,14 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			send_temp_move_pkt(p);
 			ih->prio_ = 14;
 		}
+		if(mh->method==9)
+		{
+			registration(p,SIP_MR);
+			dump();
+			debug("At %f UdpmysipAgent MR_HA in %s recv rehoming packet\n", NOW, MYNUM);
+			ih->prio_ = 14;
+		}
+		
 	} else if(node_type_ == SIP_MN_HA) {
 		if(mh->method==5)
 		{
@@ -394,6 +423,14 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		{
 			hdrc->size()-=20;
 		}
+		if(mh->method==9)
+		{
+			
+			debug("At %f UdpmysipAgent CN in %s recv rehoming packet\n", NOW, MYNUM);
+			hdrc->size()-=20;
+			ih->prio_ = 15;
+		}
+		
 	}
 	//----------------sem end------------------//
 
@@ -609,13 +646,22 @@ void UdpmysipAgent::registration(Packet* p, SipNodeType type)
 			bu = new SIPEntry(SIP_MN);
 			bu->update_entry(mh->From_id,mh->From,mh->contact_id,mh->contact);
 			bu->insert_entry(&siplist_head_);
+			bu->add_id()=mh->contact_id;
+			bu->add()=mh->contact;
 		}
 		bu->con()=mh->contact;
 	}
-//	else if (type==CN)
-//	{
-//
-//	}
+	else if (type==SIP_CN)
+	{
+		SIPEntry* bu = get_entry_by_url_id(mh->From_id);
+		if(!bu)
+		{
+			bu = new SIPEntry(SIP_CN);
+			bu->update_entry(mh->From_id,mh->From,mh->contact_id,mh->contact);
+			bu->insert_entry(&siplist_head_);
+		}
+		bu->con()=mh->contact;
+	}
 }
 
 SIPEntry* UdpmysipAgent::get_entry_by_url_id(int url_id)
@@ -645,7 +691,17 @@ SIPEntry* UdpmysipAgent::get_entry_by_iface(Node *iface)
 {
 	SIPEntry *bu =  siplist_head_.lh_first;
 	for(;bu;bu=bu->next_entry()) {
-		if(bu->eface()->get_iface()==iface) {
+		if(bu->eface()!=NULL && bu->eface()->get_iface()==iface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+SIPEntry* UdpmysipAgent::get_entry_without_iface(Node *iface)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->eface()!=NULL && bu->eface()->get_iface()!=iface) {
 			return bu;
 		}
 	}
@@ -669,6 +725,17 @@ NEMOAgent* UdpmysipAgent::get_iface_agent_by_prefix(int prefix)
 	for(;bu;bu=bu->next_entry()) {
 		if(bu->prefix()==prefix) {
 			return bu->iface();
+		}
+	}
+	return NULL;
+}
+
+SIPEntry* UdpmysipAgent::get_mr_ha_entry_by_caddr(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()==caddr) {
+			return bu;
 		}
 	}
 	return NULL;
@@ -718,5 +785,86 @@ void UdpmysipAgent::send_invite_to_temp_move_pkt(Packet* p)
 	Packet* p_invite = p->copy();
 	send(p_invite,0);
 	debug("At %f UdpmysipAgent CN in %s send invite packet\n", NOW, MYNUM);
+}
+
+void UdpmysipAgent::re_homing(Node *iface)
+{
+	SIPEntry* bu_break = get_entry_by_iface(iface);
+	SIPEntry* bu_new = get_entry_without_iface(iface);
+	SIPEntry* bu_mn = get_entry_by_type(SIP_MN);
+	SIPEntry* bu_cn = get_entry_by_type(SIP_CN);
+	
+	assert(bu_break!=NULL);
+	assert(bu_new!=NULL);
+	assert(bu_mn!=NULL);
+	assert(bu_cn!=NULL);
+	
+	//	set mn contact to new interface
+	bu_mn->con()=bu_new->con();
+	dump();
+	
+	//	set bu to break mr_ha
+	Packet *p = allocpkt();
+	hdr_ip *iph = HDR_IP(p);
+	hdr_cmn *hdrc = HDR_CMN(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	
+	mh->ack=1;
+	mh->time=NOW;
+	mh->seq=-2;
+	mh->nbytes=200;
+	mh->method=9;
+	
+	mh->requestURL = bu_break->add();
+	mh->requestURL_id = bu_break->add_id();
+	mh->From_id = bu_break->url_id();
+	mh->From = bu_break->url();
+	mh->To_id = bu_break->url_id();
+	mh->To = bu_break->url();
+	mh->contact_id = bu_break->url_id();
+	mh->contact = bu_new->con();
+	mh->cport = 3;
+	
+	show_sipheader(p);
+	
+	iph->saddr()=bu_new->con();
+	iph->daddr()=bu_break->add();
+	iph->dport()=port();
+	
+	hdrc->size()=200;
+	
+	bu_new->eface()->send(p,0);
+	
+	//	set bu to break cn
+	Packet *p_cn = allocpkt();
+	iph = HDR_IP(p_cn);
+	hdrc = HDR_CMN(p_cn);
+	mh= HDR_MYSIP(p_cn);
+	
+	mh->ack=1;
+	mh->time=NOW;
+	mh->seq=-2;
+	mh->nbytes=200;
+	mh->method=9;
+
+	mh->requestURL = bu_break->add();
+	mh->requestURL_id = bu_break->add_id();
+	mh->From_id = bu_break->url_id();
+	mh->From = bu_break->url();
+	mh->To_id = bu_cn->url_id();
+	mh->To = bu_cn->url();
+	mh->contact_id = bu_break->url_id();
+	mh->contact = bu_new->con();
+	mh->cport = 3;
+
+	show_sipheader(p);
+
+	iph->saddr()=bu_new->con();
+	iph->daddr()=bu_cn->url();
+	iph->dport()=port();
+
+	hdrc->size()=200;
+		
+	bu_new->eface()->send(p_cn,0);
 }
 

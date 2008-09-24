@@ -198,6 +198,8 @@ class mysipApp : public Application {
 	char* new_addr;
 
 	//0403 end
+	
+	double first_seq_time;
 
 };
 

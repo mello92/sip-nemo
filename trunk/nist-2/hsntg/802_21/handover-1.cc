@@ -206,7 +206,7 @@ void Handover1::process_link_down (link_down_t *e)
 	  if(udpmysip_!=0 )
 	 	  {
 	 		  printf("sip enable\n");
-//	 		  udpmysip_->re_homing(node);
+	 		  udpmysip_->re_homing(node);
 	 	  }
 	 	  else	
 	 		  re_homing(node);
@@ -311,7 +311,7 @@ void Handover1::process_link_going_down (link_going_down_t *e)
 	 NOW, Address::instance().print_nodeaddr(addr()),\
 	 e->confidenceLevel);
 
-  if (e->confidenceLevel > confidence_th_ ) {
+  if (e->confidenceLevel == confidence_th_ ) {
     MIHAgent *mih;
     link_down_t *e2 = (link_down_t *) malloc (sizeof (link_down_t));
     e2->linkIdentifier =  e->linkIdentifier;

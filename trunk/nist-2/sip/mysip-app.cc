@@ -214,7 +214,7 @@ void mysipApp::send_mysip_data()
 //    show_sipheader(&sip_buf);
     agent_->sendmsg(pktsize_, (char*) &sip_buf);  // send to UDP
 
-   snd_timer_.resched(0.01);
+    snd_timer_.resched(0.01);
 /*     
  *     FILE *op;
  *     op = fopen(filename,"a");
@@ -313,6 +313,10 @@ void mysipApp::recv_msg(int nbytes, const char *msg)
 	    //m200ok_stop = 1;
 	    // If received packet is ack packet
 	}
+	else if (sip_buf->method==9) {
+		cout << "***********sipA::recv Rehoming**************\n";
+		set_contact(sip_buf);
+	}
     }
     else {
       // If received packet is invite packet
@@ -357,6 +361,7 @@ void mysipApp::account_recv_pkt(const hdr_mysip *sip_buf)
   // Calculate RTT
   if(sip_buf->seq == 0) {
     init_recv_pkt_accounting();
+    first_seq_time = sip_buf->time;
     p_accnt.rtt = 2*(local_time - sip_buf->time);
   }
   else
@@ -371,13 +376,16 @@ void mysipApp::account_recv_pkt(const hdr_mysip *sip_buf)
   // seq sendtime arrivaltime rtt lost 
   if(p_accnt.lost_pkts > 2 && handoffnum < 30)
   {
-      fprintf(op,"%d %lf %lf %lf %d +\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
-      handofftime[handoffnum++] = local_time - p_accnt.last_arrival_time;
+      //fprintf(op,"%d %lf %lf %lf %d +\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
+	  fprintf(op,"%d %lf %lf %d +\n", sip_buf->seq, local_time-first_seq_time, p_accnt.rtt, p_accnt.lost_pkts );
+	  handofftime[handoffnum++] = local_time - p_accnt.last_arrival_time;
       //invite_timer_.resched(0.05);
   }
   else
-      fprintf(op,"%d %lf %lf %lf %d\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
-
+  {
+      //fprintf(op,"%d %lf %lf %lf %d\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
+	  	fprintf(op,"%d %lf %lf %d\n", sip_buf->seq, local_time-first_seq_time, p_accnt.rtt, p_accnt.lost_pkts );
+  }
   fclose(op);
 
   p_accnt.last_seq = sip_buf->seq;
@@ -502,8 +510,8 @@ void mysipApp::send_invite_pkt(void)
 
   // schedul next invite time
   cout << "sipA::invite next_time:"<<p_accnt.rtt <<" invite_stop:" << invite_stop << endl;
-  if(!invite_stop)
-      invite_timer_.resched(2);
+//  if(!invite_stop)
+//      invite_timer_.resched(2);
 }
 
 
