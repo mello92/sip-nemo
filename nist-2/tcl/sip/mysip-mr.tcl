@@ -64,7 +64,7 @@ Mac/802_11 set bss_timeout_ 5
 Mac/802_11 set pr_limit_ 1.2 ;#for link going down
 
 #
-Mac/802_11 set client_lifetime_ 7.0
+Mac/802_11 set client_lifetime_ 100.0
 #
 
 #wireless routing algorithm update frequency (in seconds)
@@ -604,9 +604,10 @@ $mih add-mac $tmp2
 set tmp2 [$iface1 set mac_(0)] ;#in 802.11 one interface is created
 $tmp2 mih $mih
 $mih add-mac $tmp2
-#set tmp2 [$iface2 set mac_(0)] ;#in 802.11 one interface is created
-#$tmp2 mih $mih
-#$mih add-mac $tmp2
+
+set tmp2 [$iface2 set mac_(0)] ;#in 802.11 one interface is created
+$tmp2 mih $mih
+$mih add-mac $tmp2
 
 #set tmp2 [$nemo set mac_(0)]
 #$tmp2 mih $mih
@@ -726,10 +727,11 @@ puts " time [expr $moveStart+80]"
 #$handover set-nemo-prefix 6.0.0
 
 $ns at 7 "$mysipapp_s send_invite 9999 5.0.1"
+#$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop + 40] "$mysipapp_r dump_handoff_info" 
 
 
-$handover set-mr 8.0.0 8.0.3 7.0.0 $nemo_mr_eface0 $nemo_mr_iface1
+#$handover set-mr 8.0.0 8.0.3 7.0.0 $nemo_mr_eface0 $nemo_mr_iface1
 $handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
 $handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
@@ -754,11 +756,11 @@ $ns at 0 "[eval $iface0 set mac_(2)] disconnect-link" ;#UMTS UE
 $ns at 0.1 "[eval $iface0 set mac_(2)] connect-link"     ;#umts link 
 
 $ns at $moveStart "puts \"At $moveStart Mobile Node starts moving\""
-$ns at [expr $moveStart+10] "puts \"++At [expr $moveStart+10] Mobile Node enters wlan\""
-$ns at [expr $moveStart+110] "puts \"++At [expr $moveStart+110] Mobile Node leaves wlan\""
+#$ns at [expr $moveStart+10] "puts \"++At [expr $moveStart+10] Mobile Node enters wlan\""
+#$ns at [expr $moveStart+110] "puts \"++At [expr $moveStart+110] Mobile Node leaves wlan\""
 $ns at $moveStop "puts \"Mobile Node stops moving\""
-$ns at [expr $moveStop + 40] "puts \"Simulation ends at [expr $moveStop+40]\"" 
-$ns at [expr $moveStop + 40] "finish" 
+$ns at [expr $moveStop + 10] "puts \"Simulation ends at [expr $moveStop+10]\"" 
+$ns at [expr $moveStop + 10] "finish" 
 
 if {$quiet == 0} {
 puts " Simulation is running ... please wait ..."

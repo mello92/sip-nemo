@@ -108,7 +108,7 @@ void Handover1::process_link_detected (link_detected_t *e)
 	  || (info[i]->getType() == LINK_802_11 && e->linkIdentifier.type != LINK_ETHERNET)) {
 	  //we have a better interface already. don't connected
 	  debug ("\twe have a better interface already. don't connect\n");
-	goto done;
+//	goto done;
       }
     }  
   }
@@ -129,7 +129,7 @@ void Handover1::process_link_detected (link_detected_t *e)
     mih_->mih_configure_link (this, mih_->getID(), req);
   }
 
- done:
+// done:
   free (e);
   free (info);
 }
@@ -198,18 +198,18 @@ void Handover1::process_link_down (link_down_t *e)
 	 e->linkIdentifier.macMobileTerminal);
   
   //----------------sem start------------------//
-//	  Mac *mac = mih_->get_mac(e->linkIdentifier.macMobileTerminal);
-//	  Tcl& tcl = Tcl::instance();
-//	  tcl.evalf("%s get-node", mac->name());
-//	  Node *node = (Node*)TclObject::lookup(tcl.result());
-//	  
-//	  if(udpmysip_!=0 )
-//	 	  {
-//	 		  printf("sip enable\n");
-//	 		  udpmysip_->send_reg_msg_when_break(node);
-//	 	  }
-//	 	  else	
-//	 		  send_bu_msg_when_break(node);
+	  Mac *mac = mih_->get_mac(e->linkIdentifier.macMobileTerminal);
+	  Tcl& tcl = Tcl::instance();
+	  tcl.evalf("%s get-node", mac->name());
+	  Node *node = (Node*)TclObject::lookup(tcl.result());
+	  
+	  if(udpmysip_!=0 )
+	 	  {
+	 		  printf("sip enable\n");
+//	 		  udpmysip_->re_homing(node);
+	 	  }
+	 	  else	
+	 		  re_homing(node);
   //----------------sem end------------------//
   
 //  if (connectingMac_ != -1) {
@@ -364,8 +364,8 @@ void Handover1::process_new_prefix (new_prefix* data)
 //  MIHInterfaceInfo *config;
 //  MIHInterfaceInfo **mac_infos;
 //  int nb_mac_infos;
-  vector <FlowEntry*> flows;
-  vector <Agent*> flows_to_redirect;
+//  vector <FlowEntry*> flows;
+//  vector <Agent*> flows_to_redirect;
   Mac *mac;
   Tcl& tcl = Tcl::instance();
   
@@ -428,8 +428,8 @@ void Handover1::process_new_prefix (new_prefix* data)
 //	  //we redirect this flow to the new interface
 /*//	  debug ("\tMust redirect flow from interface %s to %s\n",	\
 //		 Address::instance().print_nodeaddr(flows.at(i)->interface()->address()), \
-//		 Address::instance().print_nodeaddr(new_node->address()));
-*///	  //flows.at(i)->tmp_iface = new_node;
+*///		 Address::instance().print_nodeaddr(new_node->address()));
+//	  //flows.at(i)->tmp_iface = new_node;
 //	  tcl.evalf ("%s target [%s entry]", flows.at(i)->local()->name(), new_node->name());
 //	  flows_to_redirect.push_back (flows.at(i)->remote());
 //	  flows.at(i)->update_interface(data->interface);
@@ -441,9 +441,9 @@ void Handover1::process_new_prefix (new_prefix* data)
 //  if ((int) flows_to_redirect.size()>0) {
 //    send_update_msg (flows_to_redirect,data->interface);
 //  } 
-//
+
 //  free (mac_infos);
-//  free (data);
+  free (data);
   
 }
 

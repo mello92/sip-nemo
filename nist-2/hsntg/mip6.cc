@@ -782,13 +782,15 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 				//registration(p);
 				//dump();
 				
-				BUEntry* bu= get_entry_by_haddr(nh->haddr());
+				BUEntry* bu = get_entry_by_haddr(nh->haddr());
 				if(!bu)
 				{
 					registration(p,MN);
 					dump();
 				}
 				
+				//	choise mn entry
+				BUEntry* mn = get_entry_by_haddr(nh->haddr());
 
 				int prefix = iph->saddr() & 0xFFFFF800;
 				
@@ -797,6 +799,10 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 				assert(bu!=NULL);
 				
 				add_tunnel(p);
+				
+				//	change mn entry coa to outside coa
+				mn->caddr() = bu->caddr();
+				//dump();
 				
 				//	change car-of-address to mr-ha hoa
 				nh->coa()=bu->haddr();
@@ -1250,13 +1256,20 @@ void MIPV6Agent::tunneling(Packet* p)
 			{
 				//	daddr search by caddr is not in binding table 
 				add_tunnel(p);
-				int prefix = iph->saddr() & 0xFFFFF800;
-				debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
-				bu = get_entry_by_prefix(prefix);
-				iph->daddr()=bu->addr();
-				iph->dport()=port();
+				bu = get_entry_by_addr(iph->saddr());
+				BUEntry* out = get_mr_ha_entry_by_caddr(bu->caddr());
+				iph->daddr() = out->addr();
+				iph->dport()= port();
 				Packet* p_tunnel = p->copy();
-				bu->eface()->send(p_tunnel,0);
+				out->eface()->send(p_tunnel,0);
+				
+//				int prefix = iph->saddr() & 0xFFFFF800;
+//				debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
+//				bu = get_entry_by_prefix(prefix);
+//				iph->daddr()=bu->addr();
+//				iph->dport()=port();
+//				bu->eface()->send(p_tunnel,0);
+
 			} else {
 				//	daddr search by caddr is in binding table 
 				add_tunnel(p);
@@ -1716,7 +1729,7 @@ BUEntry* MIPV6Agent::get_entry_without_iface(Node *iface)
 {
 	BUEntry *bu =  bulist_head_.lh_first;
 	for(;bu;bu=bu->next_entry()) {
-		if(bu->eface()->get_iface()!=iface && bu->eface()!=NULL ) {
+		if(bu->eface()!=NULL && bu->eface()->get_iface()!=iface) {
 			return bu;
 		}
 	}
@@ -1776,28 +1789,62 @@ BUEntry* MIPV6Agent::get_entry_by_type(Mipv6NodeType type)
 	return NULL;
 }
 
-void MIPV6Agent::send_bu_msg_when_break(Node *iface)
+BUEntry* MIPV6Agent::get_mr_ha_entry_by_caddr(int caddr)
 {
-	BUEntry* bu = get_entry_by_iface(iface);
-	BUEntry* bu_other = get_entry_without_iface(iface);
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_HA && bu->caddr()==caddr) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+void MIPV6Agent::re_homing(Node *iface)
+{
+	BUEntry* bu_break = get_entry_by_iface(iface);
+	BUEntry* bu_new = get_entry_without_iface(iface);
+	BUEntry* bu_mn = get_entry_by_type(MN);
 	
-	assert(bu!=NULL);
-	assert(bu_other!=NULL);
+	assert(bu_break!=NULL);
+	assert(bu_new!=NULL);
+	assert(bu_mn!=NULL);
 	
-	//	we need to consider packet outside
-//	bu->caddr() = bu_other->caddr();
-//	bu->eface() = bu_other->eface();
-//	
-//	Packet *p = allocpkt();
-//	hdr_ip *iph = HDR_IP(p);
-//	hdr_cmn *hdrc = HDR_CMN(p);
-//	hdr_nemo *nh = HDR_NEMO(p);
-//	
-//	nh->coa()=bu_other->caddr();
-//	nh->H()=ON;
-//	nh->A()=ON;
-//	nh->type()=BU;
-//	nh->lifetime()=TIME_INFINITY;
-//	nh->
+	//	set mn coa to new interface
+	bu_mn->caddr()=bu_new->caddr();
+	
+	//	set bu to break mr_ha
+	Packet *p = allocpkt();
+	hdr_ip *iph = HDR_IP(p);
+	hdr_cmn *hdrc = HDR_CMN(p);
+	hdr_nemo *nh = HDR_NEMO(p);
+	
+	nh->coa()=bu_new->caddr();
+	nh->haddr()=bu_break->haddr();
+	nh->H()=ON;
+	nh->A()=ON;
+	nh->type()=BU;
+	
+	iph->saddr()=bu_new->caddr();
+	iph->daddr()=bu_break->addr();
+	iph->dport()=port();
+	hdrc->ptype()=PT_NEMO;
+	hdrc->size()= IPv6_HEADER_SIZE + BU_SIZE;
+	
+	add_tunnel(p);
+	
+//	bu_new->eface()->send(p,0);
+	
+	Tcl& tcl = Tcl::instance();
+	tcl.evalf("%s entry", bu_new->eface()->get_iface()->name());
+	NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+	Scheduler::instance().schedule(obj,p->copy(),0.1);
+	
+	
+	//Node* iface =  bu_new->eface()->get_iface()->name();
+	//{
+//	Tcl& tcl = Tcl::instance();
+//	tcl.evalf("%s target [%s entry]", this->name(), bu_new->eface()->get_iface()->name());
+	//}
 }
 
