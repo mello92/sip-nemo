@@ -39,6 +39,10 @@ global ns
 # Define global simulation parameters
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 
+# (1,n,n)
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
+
+
 # seed the default RNG
 global defaultRNG
 if {$argc == 2} {
@@ -731,9 +735,21 @@ $ns at 7 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop + 40] "$mysipapp_r dump_handoff_info" 
 
 
-#$handover set-mr 8.0.0 8.0.3 7.0.0 $nemo_mr_eface0 $nemo_mr_iface1
+#(1,1,n)
+#$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+#$handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+
+
+#(1,1,n)
+#$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+#$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+
+
+#(1,n,n)
+#$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
-$handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+
 
 $handover set-node-type $node_type(MR)
 

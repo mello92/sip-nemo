@@ -74,7 +74,7 @@ typedef enum {
 } Mipv6NodeType;
 
 typedef enum {
-	BREQ, BU, BACK, BU_HA, BU_BS, BU_CN, BU_RP, BU_MN,
+	BREQ, BU, BACK, REHOME, BU_HA, BU_BS, BU_CN, BU_RP, BU_MN,
 	BS_ADS, BS_SOL, BU_MR
 } Mipv6RegType;
 
@@ -398,6 +398,7 @@ class MIPV6Agent : public IFMNGMTAgent {
   //----------------sem start------------------//
 	UdpmysipAgent* udpmysip_;
 //  NEMOAgent *nemo_;
+	int exp_;
 	//----------------sem end------------------//
 
  private:
