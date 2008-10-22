@@ -1,0 +1,36 @@
+#summary One-sentence summary of this page.
+
+= MIPv6 =
+
+CN
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # create udp agent 
+ # attach upd agent on port 3
+
+CN_HA
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # create udp agent 
+ # attach upd agent on port 3
+
+BS
+ # create node by addr
+ # set node x, y, z
+ # set mac bss_id, enable-beacon, channel
+
+MR
+ # create multiface-node by addr
+ # create interface-node by addr
+ # set interface-node base-station, x, y, z
+ # create nemo-node by addr
+ # 
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
