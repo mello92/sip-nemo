@@ -39,14 +39,29 @@ MR
  # nemo-node  install-nd
  # nemo-node-nd set-router, router-lifetime
  # nemo-node-nd start-ra
-
+ # create handover
+ # multiface-node install-ifmanager handover
+ # interface-node-nd set-ifmanager handover
+ # multiface-node install-mih
+ # handover connect-mih mih
+ # handover nd_mac interface-node-mac
+ # multiface-node install-nemo 200~203
+ # multiface-node-nemo connect-interface interface-node(4 interface-node)
 
 
 MN
  # create multiface-node by addr
  # create interface-node by addr
  # set interface-node base-station, x, y, z
+ # multiface-node add interface node
  # interface-node install-nd
+ # multiface-node install-nemo 200
+ # multiface-node-nemo connect-interface interface-node
+ # install-default-ifmanager (mipv6)
+ # interface-node-nd set-ifmanager mipv6 
+ # mipv6 set-node-type
+
+
 
 = Details =
 
