@@ -20,13 +20,33 @@ BS
  # create node by addr
  # set node x, y, z
  # set mac bss_id, enable-beacon, channel
+ # set link to backbone
+ # install-default-ifmanager (mipv6)
+ # install-mih
+ # mipv6 connect-mih
+ # mac set mih
+ # mih add-mac
 
 MR
  # create multiface-node by addr
  # create interface-node by addr
  # set interface-node base-station, x, y, z
- # create nemo-node by addr
- # 
+ # create nemo-node by addr (BS)
+ # set nemo-node x, y, z
+ # set nemo-node mac bss_id, enable-beacon, channel
+ # multiface-node add interface node
+ # interface-node install-nd
+ # nemo-node  install-nd
+ # nemo-node-nd set-router, router-lifetime
+ # nemo-node-nd start-ra
+
+
+
+MN
+ # create multiface-node by addr
+ # create interface-node by addr
+ # set interface-node base-station, x, y, z
+ # interface-node install-nd
 
 = Details =
 
