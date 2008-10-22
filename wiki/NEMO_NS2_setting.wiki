@@ -7,30 +7,30 @@ CN
  # set link
  # install-default-ifmanager (mipv6)
  # mipv6 set-node-type CN
- # create udp agent 
- # create cbr agent
- # cbr attach udp
- # attach upd agent on port 3
-
-CN_HA
- # create node by addr
- # set link
- # install-default-ifmanager (mipv6)
- # mipv6 set-node-type CN_HA
- # create udp agent 
- # attach upd agent on port 3
-
-MR_HA
- # create node by addr
- # set link
- # install-default-ifmanager (mipv6)
- # mipv6 set-node-type  MR_HA
+ # create udpmysipagent udp_s
+ # attach udp_s on port 3
+ # udp_s set-mipv6 
+ # create mysipapp agent mysipapp_s
+ # mysipapp_s attach-agent udp_s
+ # mysipapp_s  set pktsize_, random_, myID_URL
+ # at time "mysipapp_s send_invite URL IP"
 
 MN_HA
  # create node by addr
  # set link
  # install-default-ifmanager (mipv6)
  # mipv6 set-node-type MN_HA
+ # create udpmysipagent udp_server
+ # attach udp_server on port 3
+ # create mysipapp agent mysipapp_server
+ # mysipapp_server attach-agent udp_server
+ # mysipapp_server set myID_URL, add_URL_record
+
+MR_HA
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type  MR_HA
 
 BS
  # create node by addr
@@ -69,7 +69,8 @@ MR
  # create-dch interface-node null
  # attach-dch interface-node handover dch
  # interface-node-mac mih mih (3 iface-node)
-
+ # handover set-mr 
+ # handover set-node-type
 
 MN
  # create multiface-node by addr
@@ -82,8 +83,15 @@ MN
  # install-default-ifmanager (mipv6)
  # interface-node-nd set-ifmanager mipv6 
  # mipv6 set-node-type
-
-
+ # create udpmysipagent udp_r
+ # udp_r set-mipv6
+ # multiface-node attach-agnet udp_r interface-node 3
+ # handover add-flow udp_r udp_s interface-node
+ # create mysipapp agent mysipapp_r
+ # mysipapp_r attach-agent udp_r
+ # mysipapp_r myID_URL
+ # mysipapp_r log_file
+ # at time "mysipapp_r dump_handoff_info"
 
 = Details =
 
