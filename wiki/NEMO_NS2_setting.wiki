@@ -2,9 +2,18 @@
 
 = MIPv6 =
 mysip-mr.tcl 3 1
- ---- 
+
+----
+
 Global 
+
+(1,1,1), (1,1,n), (1,n,1)
+
 Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
+
+(1,n,n)
+
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
 
 CN
  # create node by addr
