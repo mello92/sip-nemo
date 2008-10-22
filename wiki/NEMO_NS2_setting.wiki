@@ -6,15 +6,31 @@ CN
  # create node by addr
  # set link
  # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type CN
  # create udp agent 
+ # create cbr agent
+ # cbr attach udp
  # attach upd agent on port 3
 
 CN_HA
  # create node by addr
  # set link
  # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type CN_HA
  # create udp agent 
  # attach upd agent on port 3
+
+MR_HA
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type  MR_HA
+
+MN_HA
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type MN_HA
 
 BS
  # create node by addr
@@ -46,7 +62,13 @@ MR
  # handover connect-mih mih
  # handover nd_mac interface-node-mac
  # multiface-node install-nemo 200~203
- # multiface-node-nemo connect-interface interface-node(4 interface-node)
+ # multiface-node-nemo connect-interface interface-node (4 interface-node)
+ # create null agent 
+ # multiface-node attach-agnet null interface-node 4
+ # handover add-flow null udp interface-node 1
+ # create-dch interface-node null
+ # attach-dch interface-node handover dch
+ # interface-node-mac mih mih (3 iface-node)
 
 
 MN
