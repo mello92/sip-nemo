@@ -1,6 +1,10 @@
 #summary One-sentence summary of this page.
 
 = MIPv6 =
+mysip-mr.tcl 3 1
+---- 
+Global 
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
 CN
  # create node by addr
