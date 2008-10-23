@@ -297,14 +297,14 @@ if {$quiet == 0} {
 	puts "bs_eface2_mr0: tcl=$bs_eface2_mr0; id=[$bs_eface2_mr0 id]; addr=[$bs_eface2_mr0 node-addr]"
 }
 # we need to set the BSS for the base station
-set bstationMac_2 [$bs_eface2_mr0 getMac 0]
-set AP_ADDR_0_2 [$bstationMac_2 id]
+set bs_eface2_mr0_Mac [$bs_eface2_mr0 getMac 0]
+set AP_ADDR_0_2 [$bs_eface2_mr0_Mac id]
 if {$quiet == 0} {
 	puts "bss_id for bstation 2=$AP_ADDR_0_2"
 }
-$bstationMac_2 bss_id $AP_ADDR_0_2
-$bstationMac_2 enable-beacon
-$bstationMac_2 set-channel 3
+$bs_eface2_mr0_Mac bss_id $AP_ADDR_0_2
+$bs_eface2_mr0_Mac enable-beacon
+$bs_eface2_mr0_Mac set-channel 3
 
 # configure NEMO 802.11
 #set nemo [$ns node 6.0.0]
