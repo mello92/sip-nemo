@@ -127,7 +127,7 @@ CN
  # create udpmysipagent udp_s
  # *udp_s set-node-type SIP_CN*
  # attach udp_s on port 3
- # ~~udp_s set-mipv6 ~~
+ # *~~udp_s set-mipv6 ~~*
  # *mipv6 set-udpmysip udp_s*
  # create mysipapp agent mysipapp_s
  # mysipapp_s attach-agent udp_s
@@ -214,7 +214,7 @@ MN
  # interface-node-nd set-ifmanager mipv6 
  # mipv6 set-node-type MN
  # create udpmysipagent udp_r
- # ~~udp_r set-mipv6~~
+ # *~~udp_r set-mipv6~~*
  # *udp_r set-node-type SIP_MN*
  # *udp_r set-sip-mn *
  # *attach udp_r on port 3*
