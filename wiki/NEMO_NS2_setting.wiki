@@ -1,15 +1,15 @@
 #summary One-sentence summary of this page.
 
-= MIPv6 =
+= MIPv6-NEMO =
 mysip-mr.tcl 3 1
 
 ----
 
 Global 
 
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0	;(1,1,1), (1,1,n), (1,n,1)
+Agent/MIHUser/IFMNGMT/MIPV6 set exp`_` 0	;(1,1,1), (1,1,n), (1,n,1)
 
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4	;(1,n,n)
+Agent/MIHUser/IFMNGMT/MIPV6 set exp`_` 4	;(1,n,n)
 
 CN
  # create node by addr
@@ -104,6 +104,113 @@ MN
  # mysipapp_r myID_URL
  # mysipapp_r log_file
  # at time "mysipapp_r dump_handoff_info"
+
+
+= SIP-NEMO =
+mysip-mr3.tcl 3 1
+
+----
+
+Global 
+
+Agent/MIHUser/IFMNGMT/MIPv6/Handover/Handover1 set confidence_th_ 100	; disable 802_21
+
+CN
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type CN
+ # ~~create udp_ agent~~
+ # ~~create cbr_ agent~~
+ # ~~cbr_ attach-agent udp_~~
+ # create udpmysipagent udp_s
+ # attach udp_s on port 3
+ # udp_s set-mipv6 
+ # create mysipapp agent mysipapp_s
+ # mysipapp_s attach-agent udp_s
+ # mysipapp_s  set pktsize_, random_, myID_URL
+ # at time "mysipapp_s send_invite URL IP"
+
+MN_HA
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type MN_HA
+ # create udpmysipagent udp_server
+ # attach udp_server on port 3
+ # create mysipapp agent mysipapp_server
+ # mysipapp_server attach-agent udp_server
+ # mysipapp_server set myID_URL, add_URL_record
+
+MR_HA
+ # create node by addr
+ # set link
+ # install-default-ifmanager (mipv6)
+ # mipv6 set-node-type  MR_HA
+
+BS
+ # create node by addr
+ # set node x, y, z
+ # set mac bss_id, enable-beacon, channel
+ # set link to backbone
+ # install-default-ifmanager (mipv6)
+ # install-mih
+ # mipv6 connect-mih
+
+
+ # mac set mih
+ # mih add-mac
+
+MR
+ # create multiface-node by addr
+ # create interface-node by addr
+ # set interface-node base-station, x, y, z
+ # create nemo-node by addr (BS)
+ # set nemo-node x, y, z
+ # set nemo-node mac bss_id, enable-beacon, channel
+ # multiface-node add interface node
+ # interface-node install-nd
+ # nemo-node  install-nd
+ # nemo-node-nd set-router, router-lifetime
+ # nemo-node-nd start-ra
+ # create handover
+ # multiface-node install-ifmanager handover
+ # interface-node-nd set-ifmanager handover
+ # multiface-node install-mih
+ # handover connect-mih mih
+ # handover nd_mac interface-node-mac
+ # multiface-node install-nemo 200~203
+ # multiface-node-nemo connect-interface interface-node (4 interface-node)
+ # ~~create null agent ~~
+ # ~~multiface-node attach-agnet null interface-node 4~~
+ # ~~handover add-flow null udp interface-node 1~~
+ # create-dch interface-node null
+ # attach-dch interface-node handover dch
+ # interface-node-mac mih mih (3 iface-node)
+ # handover set-mr 
+ # handover set-node-type
+
+MN
+ # create multiface-node by addr
+ # create interface-node by addr
+ # set interface-node base-station, x, y, z
+ # multiface-node add interface node
+ # interface-node install-nd
+ # multiface-node install-nemo 200
+ # multiface-node-nemo connect-interface interface-node
+ # install-default-ifmanager (mipv6)
+ # interface-node-nd set-ifmanager mipv6 
+ # mipv6 set-node-type
+ # create udpmysipagent udp_r
+ # udp_r set-mipv6
+ # multiface-node attach-agnet udp_r interface-node 3
+ # handover add-flow udp_r udp_s interface-node
+ # create mysipapp agent mysipapp_r
+ # mysipapp_r attach-agent udp_r
+ # mysipapp_r myID_URL
+ # mysipapp_r log_file
+ # at time "mysipapp_r dump_handoff_info"
+
 
 = Details =
 
