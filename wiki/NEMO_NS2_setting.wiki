@@ -81,8 +81,9 @@ MR
  # create-dch interface-node null
  # attach-dch interface-node handover dch
  # interface-node-mac mih mih (3 iface-node)
+ # handover add-flow udp_r udp_s interface-node 2
  # handover set-mr 
- # handover set-node-type
+ # handover set-node-type MR
 
 MN
  # create multiface-node by addr
@@ -94,7 +95,7 @@ MN
  # multiface-node-nemo connect-interface interface-node
  # install-default-ifmanager (mipv6)
  # interface-node-nd set-ifmanager mipv6 
- # mipv6 set-node-type
+ # mipv6 set-node-type MN
  # create udpmysipagent udp_r
  # udp_r set-mipv6
  # multiface-node attach-agnet udp_r interface-node 3
@@ -124,9 +125,10 @@ CN
  # ~~create cbr_ agent~~
  # ~~cbr_ attach-agent udp_~~
  # create udpmysipagent udp_s
- # *udp_s set-node-type SIP_CN
+ # *udp_s set-node-type SIP_CN*
  # attach udp_s on port 3
- # udp_s set-mipv6 
+ # ~~udp_s set-mipv6 ~~
+ # *mipv6 set-udpmysip udp_s*
  # create mysipapp agent mysipapp_s
  # mysipapp_s attach-agent udp_s
  # mysipapp_s  set pktsize_, random_, myID_URL
@@ -138,6 +140,7 @@ MN_HA
  # install-default-ifmanager (mipv6)
  # mipv6 set-node-type MN_HA
  # create udpmysipagent udp_server
+ # *udp_server set-node-type SIP_MN_HA*
  # attach udp_server on port 3
  # create mysipapp agent mysipapp_server
  # mysipapp_server attach-agent udp_server
@@ -148,6 +151,9 @@ MR_HA
  # set link
  # install-default-ifmanager (mipv6)
  # mipv6 set-node-type  MR_HA
+ # *create udpmysipagent udp_mr_ha*
+ # *udp_mr_ha set-node-type SIP_MR_HA*
+ # *attach udp_mr_ha on port 3*
 
 BS
  # create node by addr
@@ -157,8 +163,6 @@ BS
  # install-default-ifmanager (mipv6)
  # install-mih
  # mipv6 connect-mih
-
-
  # mac set mih
  # mih add-mac
 
@@ -188,8 +192,15 @@ MR
  # create-dch interface-node null
  # attach-dch interface-node handover dch
  # interface-node-mac mih mih (3 iface-node)
- # handover set-mr 
- # handover set-node-type
+ # *create udpmysipagent udp_mr*
+ # *udp_mr set-node-type SIP_MR*
+ # *udp_mr set-sip-mr *
+ # *attach udp_mr on port 3*
+ # *handover set-udpmysip udp_mr*
+ # *multiface-node attach-agnet udp_mr interface-node 3*
+ # handover add-flow udp_r udp_s interface-node 2
+ # *~~ handover set-mr ~~*
+ # handover set-node-type MR
 
 MN
  # create multiface-node by addr
@@ -201,9 +212,13 @@ MN
  # multiface-node-nemo connect-interface interface-node
  # install-default-ifmanager (mipv6)
  # interface-node-nd set-ifmanager mipv6 
- # mipv6 set-node-type
+ # mipv6 set-node-type MN
  # create udpmysipagent udp_r
- # udp_r set-mipv6
+ # ~~udp_r set-mipv6~~
+ # *udp_r set-node-type SIP_MN*
+ # *udp_r set-sip-mn *
+ # *attach udp_r on port 3*
+ # *mipv6 set-udpmysip udp_r*
  # multiface-node attach-agnet udp_r interface-node 3
  # handover add-flow udp_r udp_s interface-node
  # create mysipapp agent mysipapp_r
