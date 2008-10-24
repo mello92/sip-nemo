@@ -113,7 +113,7 @@ mysip-mr3.tcl 3 1
 
 Global 
 
-Agent/MIHUser/IFMNGMT/MIPv6/Handover/Handover1 set confidence_th_ 100	; disable 802_21
+Agent/MIHUser/IFMNGMT/MIPv6/Handover/Handover1 set confidence_th`_` 100	; disable 802_21
 
 CN
  # create node by addr
@@ -124,6 +124,7 @@ CN
  # ~~create cbr_ agent~~
  # ~~cbr_ attach-agent udp_~~
  # create udpmysipagent udp_s
+ # *udp_s set-node-type SIP_CN
  # attach udp_s on port 3
  # udp_s set-mipv6 
  # create mysipapp agent mysipapp_s
