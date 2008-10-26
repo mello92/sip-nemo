@@ -122,33 +122,24 @@ $ns trace-all $f
 
 # set up for hierarchical routing (needed for routing over a basestation)
 $ns node-config -addressType hierarchical
-AddrParams set domain_num_  18                      ;# domain number
-AddrParams set cluster_num_ {1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1}   ;# cluster number for each domain 
+AddrParams set domain_num_  11                      ;# domain number
+AddrParams set cluster_num_ {1 1 1 1 1 1 1 1 1 1 1}            ;# cluster number for each domain 
 # 1st cluster: UMTS: 2 network entities + nb of mobile nodes
 # 2nd cluster: CN
 # 3rd cluster: core network
 # 4th cluster: WLAN: 1BS + nb of mobile nodes
 # 5th cluster: super nodes
-lappend tmp 4                                      ;# UMTS MNs+RNC+BS
-lappend tmp 1                                      ;# cn0
+lappend tmp 3                                      ;# UMTS MNs+RNC+BS
+lappend tmp 1                                      ;# router 0
 lappend tmp 1                                      ;# router 1
-lappend tmp 2                                      ;# bs_eface1_mr0 eface1_mr0
-lappend tmp 1                                      ;# mr0
-lappend tmp 1                                      ;# ha
-lappend tmp 2                                      ;# iface0_mr0 eface_mn0
-lappend tmp 1                                      ;# mn0
-lappend tmp 1                                      ;# mr0_ha1
-lappend tmp 1                                      ;# mn0_ha2
-lappend tmp 2                                      ;# bs_eface2_mr0 eface2_mr0
-
-lappend tmp 1                                      ;# mr1_ha1
-lappend tmp 1                                      ;# mr1_ha2
-lappend tmp 2                                      ;# bs_eface2_mr1 eface2_mr1
-lappend tmp 2                                      ;# bs_eface1_mr1 eface1_mr1
-lappend tmp 2                                      ;# iface0_mr1 eface0_mn1
-lappend tmp 1                                      ;# mn1
-lappend tmp 1                                      ;# mr1
-
+lappend tmp 2                                      ;# 802.11 MNs+BS
+lappend tmp 1                                      ;# MULTIFACE nodes 
+lappend tmp 1                                      ;# HA
+lappend tmp 2                                      ;# MR
+lappend tmp 1                                      ;# MN multi
+lappend tmp 1                                      ;# MR_HA1
+lappend tmp 1                                      ;# MR_HA2
+lappend tmp 2                                      ;# 802.11 MNs+BS
 
 AddrParams set nodes_num_ $tmp
 
@@ -191,7 +182,6 @@ $ns node-config -UmtsNodeType ue \
 		-radioNetworkController $rnc
 
 set eface0_mr0 [$ns create-Umtsnode 0.0.2] ; #Node Id begins with 2. 
-set eface0_mr1 [$ns create-Umtsnode 0.0.3] ;
 
 # Node address for router0 and router1 are 4 and 5, respectively.
 set cn0 [$ns node 1.0.0]
@@ -199,8 +189,6 @@ set router1 [$ns node 2.0.0]
 set ha [$ns node 5.0.0]
 set mr0_ha1 [$ns node 8.0.0]
 set mr0_ha2 [$ns node 9.0.0]
-set mr1_ha1 [$ns node 11.0.0]
-set mr1_ha2 [$ns node 12.0.0]
 
 if {$quiet == 0} {
 	puts "cn0: tcl=$cn0; id=[$cn0 id]; addr=[$cn0 node-addr]"
@@ -208,8 +196,6 @@ if {$quiet == 0} {
 	puts "ha: tcl=$ha; id=[$ha id]; addr=[$ha node-addr]"
 	puts "mr0_ha1: tcl=$mr0_ha1; id=[$mr0_ha1 id]; addr=[$mr0_ha1 node-addr]"
 	puts "mr0_ha2: tcl=$mr0_ha2; id=[$mr0_ha2 id]; addr=[$mr0_ha2 node-addr]"
-	puts "mr1_ha1: tcl=$mr1_ha1; id=[$mr1_ha1 id]; addr=[$mr1_ha1 node-addr]"
-	puts "mr1_ha2: tcl=$mr1_ha2; id=[$mr1_ha2 id]; addr=[$mr1_ha2 node-addr]"
 }
 
 # connect links 
@@ -218,8 +204,6 @@ $ns duplex-link $router1 $cn0 100MBit 30ms DropTail 1000
 $ns duplex-link $router1 $ha 100MBit 30ms DropTail 1000
 $ns duplex-link $router1 $mr0_ha1 100MBit 30ms DropTail 1000
 $ns duplex-link $router1 $mr0_ha2 100MBit 30ms DropTail 1000
-$ns duplex-link $router1 $mr1_ha1 100MBit 30ms DropTail 1000
-$ns duplex-link $router1 $mr1_ha2 100MBit 30ms DropTail 1000
 $rnc add-gateway $router1
 
 # creation of the MutiFaceNodes. It MUST be done before the 802.11
@@ -227,15 +211,11 @@ $ns node-config  -multiIf ON                            ;#to create MultiFaceNod
 
 set mr0 [$ns node 4.0.0] 
 set mn0 [$ns node 7.0.0]
-set mr1 [$ns node 17.0.0] 
-set mn1 [$ns node 16.0.0]
 
 $ns node-config  -multiIf OFF                           ;#reset attribute
 if {$quiet == 0} {
 	puts "mr0(s) has/have been created"
 	puts "mn0(s) has/have been created"
-	puts "mr1(s) has/have been created"
-	puts "mn1(s) has/have been created"
 }
 
 #
@@ -268,7 +248,7 @@ $topo load_flatgrid $opt(x) $opt(y)
 #puts "Topology created"
 
 # create God
-create-god 28				                ;# give the number of nodes 
+create-god 18				                ;# give the number of nodes 
 
 
 # configure Access Points
@@ -287,9 +267,7 @@ $ns node-config  -adhocRouting $opt(adhocRouting) \
 				 -routerTrace OFF \
 				 -macTrace ON  \
 				 -movementTrace ON
-				 
-#######################
-#		configure mr 0
+
 # configure Base station 802.11
 set bs_eface1_mr0 [$ns node 3.0.0]
 #$bs_eface1_mr0 set X_ 100.0
@@ -328,53 +306,29 @@ $bs_eface2_mr0_Mac bss_id $AP_ADDR_0_2
 $bs_eface2_mr0_Mac enable-beacon
 $bs_eface2_mr0_Mac set-channel 3
 
-#######################
-#		configure mr 1
-# configure Base station 802.11
-set bs_eface1_mr1 [$ns node 14.0.0]
-#$bs_eface1_mr1 set X_ 100.0
-$bs_eface1_mr1 set X_ 50.0
-$bs_eface1_mr1 set Y_ 100.0
-$bs_eface1_mr1 set Z_ 0.0
-if {$quiet == 0} {
-	puts "bs_eface1_mr1: tcl=$bs_eface1_mr1; id=[$bs_eface1_mr1 id]; addr=[$bs_eface1_mr1 node-addr]"
-}
-# we need to set the BSS for the base station
-set bs_eface1_mr1_Mac [$bs_eface1_mr1 getMac 0]
-set AP_ADDR_0 [$bs_eface1_mr1_Mac id]
-if {$quiet == 0} {
-	puts "bss_id for bs_eface1_mr1 =$AP_ADDR_0"
-}
-$bs_eface1_mr1_Mac bss_id $AP_ADDR_0
-$bs_eface1_mr1_Mac enable-beacon
-$bs_eface1_mr1_Mac set-channel 4
-
-
-# configure Base station 802.11
-set bs_eface2_mr1 [$ns node 13.0.0]
-$bs_eface2_mr1 set X_ 110.0
-$bs_eface2_mr1 set Y_ 100.0
-$bs_eface2_mr1 set Z_ 0.0
-if {$quiet == 0} {
-	puts "bs_eface2_mr1: tcl=$bs_eface2_mr1; id=[$bs_eface2_mr1 id]; addr=[$bs_eface2_mr1 node-addr]"
-}
-# we need to set the BSS for the base station
-set bs_eface2_mr1_Mac [$bs_eface2_mr1 getMac 0]
-set AP_ADDR_0_2 [$bs_eface2_mr1_Mac id]
-if {$quiet == 0} {
-	puts "bss_id for bstation 2=$AP_ADDR_0_2"
-}
-$bs_eface2_mr1_Mac bss_id $AP_ADDR_0_2
-$bs_eface2_mr1_Mac enable-beacon
-$bs_eface2_mr1_Mac set-channel 5
+# configure NEMO 802.11
+#set nemo [$ns node 6.0.0]
+#$nemo set X_ 200.0
+#$nemo set Y_ 200.0
+#$nemo set Z_ 0.0
+#if {$quiet == 0} {
+#	puts "nemo: tcl=$nemo; id=[$nemo id]; addr=[$nemo node-addr]"
+#}
+## we need to set the BSS for the base station
+#set nemoMac [$nemo getMac 0]
+#set AP_ADDR_1 [$nemoMac id]
+#if {$quiet == 0} {
+#	puts "bss_id for nemo=$AP_ADDR_1"
+#}
+#$nemoMac bss_id $AP_ADDR_1
+#$nemoMac enable-beacon
+#$nemoMac set-channel 2
 
 
 # creation of the wireless interface 802.11
 $ns node-config -wiredRouting OFF \
 				-macTrace ON 		
-				
-#######################
-#		configure mr 0
+
 set eface1_mr0 [$ns node 3.0.1]     ;# node id is 8. 
 $eface1_mr0 random-motion 0		;# disable random motion
 $eface1_mr0 base-station [AddrParams addr2id [$bs_eface1_mr0 node-addr]] ;#attach mn to basestation
@@ -434,111 +388,27 @@ if {$quiet == 0} {
 [$eface0_mn0 getMac 0] set-channel 2
 
 
-#######################
-#		configure mr 1
-set eface1_mr1 [$ns node 14.0.1]     ;# node id is 8. 
-$eface1_mr1 random-motion 0		;# disable random motion
-$eface1_mr1 base-station [AddrParams addr2id [$bs_eface1_mr1 node-addr]] ;#attach mn to basestation
-$eface1_mr1 set X_ $X_src
-$eface1_mr1 set Y_ $Y_src
-$eface1_mr1 set Z_ 0.0
-
-if {$quiet == 0} {
-	puts "eface1_mr1 = $eface1_mr1"
-}
-[$eface1_mr1 getMac 0] set-channel 4
-
-
-set eface2_mr1 [$ns node 13.0.1]     ;# node id is 8. 
-$eface2_mr1 random-motion 0		;# disable random motion
-$eface2_mr1 base-station [AddrParams addr2id [$bs_eface2_mr1 node-addr]] ;#attach mn to basestation
-$eface2_mr1 set X_ $X_src
-$eface2_mr1 set Y_ $Y_src
-$eface2_mr1 set Z_ 0.0
-
-if {$quiet == 0} {
-	puts "eface2_mr1 = $eface2_mr1"
-}
-[$eface2_mr1 getMac 0] set-channel 6
-
-
-set iface0_mr1 [$ns node 15.0.0]     ;# node id is 8. 
-$iface0_mr1 random-motion 0		;# disable random motion
-#$iface0_mr1 base-station [AddrParams addr2id [$nemo node-addr]] ;#attach mn to basestation
-$iface0_mr1 set X_ 200
-$iface0_mr1 set Y_ 200
-$iface0_mr1 set Z_ 0.0
-
-if {$quiet == 0} {
-	puts "iface0_mr1 = $iface0_mr1"
-}
-#[$iface0_mr0 getMac 0] set-channel 2
-set iface0_mr1_Mac [$iface0_mr1 getMac 0]
-set AP_ADDR_1 [$iface0_mr1_Mac id]
-if {$quiet == 0} {
-	puts "bss_id for iface0_mr0 =$AP_ADDR_1"
-}
-$iface0_mr1_Mac bss_id $AP_ADDR_1
-$iface0_mr1_Mac enable-beacon
-$iface0_mr1_Mac set-channel 5
-
-set eface0_mn1 [$ns node 15.0.1]     ;# node id is 8. 
-$eface0_mn1 random-motion 0		;# disable random motion
-$eface0_mn1 base-station [AddrParams addr2id [$iface0_mr1 node-addr]] ;#attach mn to basestation
-$eface0_mn1 set X_ 200
-$eface0_mn1 set Y_ 170
-$eface0_mn1 set Z_ 0.0
-
-if {$quiet == 0} {
-	puts "eface0_mn1 = $eface0_mn1"
-}
-[$eface0_mn1 getMac 0] set-channel 5
-
-#
-#	calculate the speed of the node
-#
-#######################
-#		configure mr 0
+#calculate the speed of the node
 $ns at $moveStart "$eface1_mr0 setdest $X_dst $Y_dst $moveSpeed"
 $ns at $moveStart "$eface2_mr0 setdest $X_dst $Y_dst $moveSpeed"
-#######################
-#		configure mr 1
-$ns at $moveStart "$eface1_mr1 setdest $X_dst $Y_dst $moveSpeed"
-$ns at $moveStart "$eface2_mr1 setdest $X_dst $Y_dst $moveSpeed"
 
-#
-#	add the interfaces to supernode
-#
-#######################
-#		configure mr 0
+#add the interfaces to supernode
 $mr0 add-interface-node $eface0_mr0
 $mr0 add-interface-node $eface1_mr0
 $mr0 add-interface-node $eface2_mr0
-$mr0 add-interface-node $iface0_mr0
-$mn0 add-interface-node $eface0_mn0
-#######################
-#		configure mr 1
-$mr1 add-interface-node $eface0_mr1
-$mr1 add-interface-node $eface1_mr1
-$mr1 add-interface-node $eface2_mr1
-$mr1 add-interface-node $iface0_mr1
-$mn1 add-interface-node $eface0_mn1
 
-#
+$mr0 add-interface-node $iface0_mr0
+
+$mn0 add-interface-node $eface0_mn0
+
 # add link to backbone
-#
-#######################
-#		configure mr 0
 $ns duplex-link $bs_eface1_mr0 $router1 100MBit 15ms DropTail 1000
 $ns duplex-link $bs_eface2_mr0 $router1 100MBit 15ms DropTail 1000
-#######################
-#		configure mr 0
-$ns duplex-link $bs_eface1_mr1 $router1 100MBit 15ms DropTail 1000
-$ns duplex-link $bs_eface2_mr1 $router1 100MBit 15ms DropTail 1000
 
-#
+
 # install ND modules
-#
+
+
 # take care of UMTS
 # Note: The ND module is on the rnc node NOT in the base station
 set nd_rncUMTS [$rnc install-nd]
@@ -548,16 +418,10 @@ $nd_rncUMTS enable-broadcast FALSE
 
 $nd_rncUMTS add-ra-target 0.0.2 ;#in UMTS there is no notion of broadcast. 
 #We fake it by sending unicast to a list of nodes
-#######################
-#		configure mr 0
 set nd_eface0_mr0 [$eface0_mr0 install-nd]
-#######################
-#		configure mr 1
-set nd_eface0_mr1 [$eface0_mr0 install-nd]
 
-# BS WLAN 1
-#######################
-#		configure mr 0
+
+# now WLAN 1
 set nd_bs_eface1_mr0 [$bs_eface1_mr0 install-nd]
 $nd_bs_eface1_mr0 set-router TRUE
 $nd_bs_eface1_mr0 router-lifetime 18
@@ -570,23 +434,7 @@ set tmp2 [$bs_eface1_mr0 set mac_(0)] ;#in 802.11 one interface is created
 $tmp2 mih $mih_bs_eface1_mr0
 $mih_bs_eface1_mr0 add-mac $tmp2
 
-#######################
-#		configure mr 1
-set nd_bs_eface1_mr1 [$bs_eface1_mr1 install-nd]
-$nd_bs_eface1_mr1 set-router TRUE
-$nd_bs_eface1_mr1 router-lifetime 18
-$ns at 1 "$nd_bs_eface1_mr1 start-ra"
-
-set mipv6_bs_eface1_mr1 [$bs_eface1_mr1 install-default-ifmanager]
-set mih_bs_eface1_mr1 [$bs_eface1_mr1 install-mih]
-$mipv6_bs_eface1_mr1 connect-mih $mih_bs_eface1_mr1
-set tmp2 [$bs_eface1_mr1 set mac_(0)] ;#in 802.11 one interface is created
-$tmp2 mih $mih_bs_eface1_mr1
-$mih_bs_eface1_mr1 add-mac $tmp2
-
-# BS WLAN 2
-#######################
-#		configure mr 0
+# now WLAN 2
 set nd_bs_eface2_mr0 [$bs_eface2_mr0 install-nd]
 $nd_bs_eface2_mr0 set-router TRUE
 $nd_bs_eface2_mr0 router-lifetime 18
@@ -599,24 +447,7 @@ set tmp3 [$bs_eface2_mr0 set mac_(0)] ;#in 802.11 one interface is created
 $tmp3 mih $mih_bs_eface2_mr0
 $mih_bs_eface2_mr0 add-mac $tmp3
 
-#######################
-#		configure mr 1
-set nd_bs_eface2_mr1 [$bs_eface2_mr1 install-nd]
-$nd_bs_eface2_mr1 set-router TRUE
-$nd_bs_eface2_mr1 router-lifetime 18
-$ns at 1 "$nd_bs_eface2_mr1 start-ra"
 
-set mipv6_bs_eface2_mr1 [$bs_eface2_mr1 install-default-ifmanager]
-set mih_bs_eface2_mr1 [$bs_eface2_mr1 install-mih]
-$mipv6_bs_eface2_mr1 connect-mih $mih_bs_eface2_mr1
-set tmp3 [$bs_eface2_mr1 set mac_(0)] ;#in 802.11 one interface is created
-$tmp3 mih $mih_bs_eface2_mr1
-$mih_bs_eface2_mr1 add-mac $tmp3
-
-
-# MR 
-#######################
-#		configure mr 0
 set nd_eface1_mr0 [$eface1_mr0 install-nd]
 set nd_eface2_mr0 [$eface2_mr0 install-nd]
 
@@ -625,172 +456,101 @@ $nd_iface0_mr0 set-router TRUE
 $nd_iface0_mr0 router-lifetime 18
 $ns at 1 "$nd_iface0_mr0 start-ra"
 
-#######################
-#		configure mr 1
-set nd_eface1_mr1 [$eface1_mr1 install-nd]
-set nd_eface2_mr1 [$eface2_mr1 install-nd]
+#set ifmgmt_nemo [$nemo install-default-ifmanager]
+#set mih_nemo [$nemo install-mih]
+#$ifmgmt_nemo connect-mih $mih_nemo
+#set tmp3 [$nemo set mac_(0)] ;#in 802.11 one interface is created
+#$tmp3 mih $mih_nemo
+#$mih_nemo add-mac $tmp3
 
-set nd_iface0_mr1 [$iface0_mr1 install-nd]
-$nd_iface0_mr1 set-router TRUE
-$nd_iface0_mr1 router-lifetime 18
-$ns at 1 "$nd_iface0_mr1 start-ra"
 
-# MN
-#######################
-#		configure mr 0
 set nd_eface0_mn0 [$eface0_mn0 install-nd]
 
-#######################
-#		configure mr 1
-set nd_eface0_mn1 [$eface0_mn1 install-nd]
 
+#set nemo_node_handover [new Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1]
+#$mnNode install-ifmanager $nemo_node_handover
 #
-# install NEMO modules
+#$nd_nemo_node set-ifmanager $nemo_node_handover
 #
-#######################
-#		configure mr 0
+#set nemo_node_mih [$mnNode install-mih]
+#
+#$nemo_node_handover connect-mih $nemo_node_mih ;#create connection between MIH and iface management
+#$nemo_node_handover nd_mac $nd_nemo_node [$nemo_node set mac_(0)]
+#
+#$nemo_node_handover set-ha 5.0.0 5.0.3
+
+set nemo_eface0_mn0 [$mn0 install-nemo 200]
+$nemo_eface0_mn0 connect-interface $eface0_mn0
+
+set mipv6_mn0 [$mn0 install-default-ifmanager]
+$mipv6_mn0 set-mn 5.0.0 5.0.1 $nemo_eface0_mn0
+
+$nd_eface0_mn0 set-ifmanager $mipv6_mn0
+
+
+$mipv6_mn0 set-node-type $node_type(MN)
+
+#set ifmgmt_nemo [$nemo install-default-ifmanager]
+#set ifmgmt_nemo_node [$nemo install-default-ifmanager]
+
+
+
+# add the handover module for the Interface Management
+set handover_mr0 [new Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1]
+$mr0 install-ifmanager $handover_mr0
+
+# install interface manager into multi-interface node and CN
+$nd_eface1_mr0 set-ifmanager $handover_mr0 
+$nd_eface2_mr0 set-ifmanager $handover_mr0 
+$nd_eface0_mr0 set-ifmanager $handover_mr0 
+
+
+
+
+
+# install MIH in multi-interface node
+set mih_mr0 [$mr0 install-mih]
+
+$handover_mr0 connect-mih $mih_mr0 ;#create connection between MIH and iface management
+$handover_mr0 nd_mac $nd_eface1_mr0 [$eface1_mr0 set mac_(0)]
+$handover_mr0 nd_mac $nd_eface2_mr0 [$eface2_mr0 set mac_(0)]
+
+
+
 set nemo_eface0_mr0 [$mr0 install-nemo 200]
 set nemo_eface1_mr0 [$mr0 install-nemo 201]
 set nemo_eface2_mr0 [$mr0 install-nemo 202]
 set nemo_iface0_mr0 [$mr0 install-nemo 203]
-set nemo_eface0_mn0 [$mn0 install-nemo 200]
 
 $nemo_eface0_mr0 connect-interface $eface0_mr0
 $nemo_eface1_mr0 connect-interface $eface1_mr0
 $nemo_eface2_mr0 connect-interface $eface2_mr0
 $nemo_iface0_mr0 connect-interface $iface0_mr0
-$nemo_eface0_mn0 connect-interface $eface0_mn0
-
-#######################
-#		configure mr 1
-set nemo_eface0_mr1 [$mr1 install-nemo 200]
-set nemo_eface1_mr1 [$mr1 install-nemo 201]
-set nemo_eface2_mr1 [$mr1 install-nemo 202]
-set nemo_iface0_mr1 [$mr1 install-nemo 203]
-set nemo_eface0_mn1 [$mn1 install-nemo 200]
-
-$nemo_eface0_mr1 connect-interface $eface0_mr1
-$nemo_eface1_mr1 connect-interface $eface1_mr1
-$nemo_eface2_mr1 connect-interface $eface2_mr1
-$nemo_iface0_mr1 connect-interface $iface0_mr1
-$nemo_eface0_mn1 connect-interface $eface0_mn1
-
-#
-# install Interface Management modules (MIPv6 or Handover)
-#
-
-# MN
-#######################
-#		configure mr 0
-set mipv6_mn0 [$mn0 install-default-ifmanager]
-$nd_eface0_mn0 set-ifmanager $mipv6_mn0
-$mipv6_mn0 set-node-type $node_type(MN)
-$mipv6_mn0 set-mn 5.0.0 5.0.1 $nemo_eface0_mn0
-
-#######################
-#		configure mr 1
-set mipv6_mn1 [$mn1 install-default-ifmanager]
-$nd_eface0_mn1 set-ifmanager $mipv6_mn1
-$mipv6_mn1 set-node-type $node_type(MN)
-$mipv6_mn1 set-mn 5.0.0 5.0.2 $nemo_eface0_mn1
 
 
-# MR
-#######################
-#		configure mr 0
-set handover_mr0 [new Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1]
-$mr0 install-ifmanager $handover_mr0
-
-$nd_eface1_mr0 set-ifmanager $handover_mr0 
-$nd_eface2_mr0 set-ifmanager $handover_mr0 
-$nd_eface0_mr0 set-ifmanager $handover_mr0 
-
-$handover_mr0 set-node-type $node_type(MR)
-
-#(1,1,n)
-$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
-
-#(1,n,1)
-#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-#$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
-
-#(1,n,n)
-#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-#$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
-
-#######################
-#		configure mr 1
-set handover_mr1 [new Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1]
-$mr1 install-ifmanager $handover_mr1
-
-$nd_eface1_mr1 set-ifmanager $handover_mr1 
-$nd_eface2_mr1 set-ifmanager $handover_mr1 
-$nd_eface0_mr1 set-ifmanager $handover_mr1 
-
-$handover_mr1 set-node-type $node_type(MR)
-
-#(1,1,n)
-$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
-
-#(1,n,1)
-#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-#$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
-
-#(1,n,n)
-#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-#$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+#$handover connect-nemo $mr_nemo
 
 
-# MR HA
-#######################
-#		configure mr 0
+#$router0 install-default-ifmanager
+#$router2 install-default-ifmanager
+
+set mipv6_cn0 [$cn0 install-default-ifmanager]
+set mipv6_ha	[$ha install-default-ifmanager]
 set mipv6_mr0_ha1	[$mr0_ha1 install-default-ifmanager]
 set mipv6_mr0_ha2		[$mr0_ha2 install-default-ifmanager]
-$mipv6_mr0_ha1 set-node-type $node_type(MR_HA)
-$mipv6_mr0_ha2 set-node-type $node_type(MR_HA)
 
-#######################
-#		configure mr 1
-set mipv6_mr1_ha1	[$mr1_ha1 install-default-ifmanager]
-set mipv6_mr1_ha2		[$mr1_ha2 install-default-ifmanager]
-$mipv6_mr1_ha1 set-node-type $node_type(MR_HA)
-$mipv6_mr1_ha2 set-node-type $node_type(MR_HA)
-
-#	HA
-#######################
-set mipv6_ha	[$ha install-default-ifmanager]
-$mipv6_ha set-node-type $node_type(MN_HA)
-
-#	CN
-#######################
-set mipv6_cn0 [$cn0 install-default-ifmanager]
 $mipv6_cn0 set-cn 5.0.0 5.0.3
+
 $mipv6_cn0 set-node-type $node_type(CN)
 
+$mipv6_ha set-node-type $node_type(MN_HA)
+
+$mipv6_mr0_ha1 set-node-type $node_type(MR_HA)
+
+$mipv6_mr0_ha2 set-node-type $node_type(MR_HA)
 
 #
-# install MIH modules
-#
-
-#######################
-#		configure mr 0
-set mih_mr0 [$mr0 install-mih]	;# install MIH in multi-interface node
-$handover_mr0 connect-mih $mih_mr0 ;#create connection between MIH and iface management
-$handover_mr0 nd_mac $nd_eface1_mr0 [$eface1_mr0 set mac_(0)]
-$handover_mr0 nd_mac $nd_eface2_mr0 [$eface2_mr0 set mac_(0)]
-
-#######################
-#		configure mr 1
-set mih_mr1 [$mr1 install-mih]	;# install MIH in multi-interface node
-$handover_mr1 connect-mih $mih_mr1 ;#create connection between MIH and iface management
-$handover_mr1 nd_mac $nd_eface1_mr1 [$eface1_mr1 set mac_(0)]
-$handover_mr1 nd_mac $nd_eface2_mr1 [$eface2_mr1 set mac_(0)]
-
-
-#
-#	create traffic: TCP application between router0 and Multi interface node
+#create traffic: TCP application between router0 and Multi interface node
 #
 #Create a UDP agent and attach it to node n0
 set udp_ [new Agent/UDP]
@@ -828,12 +588,6 @@ $ns attach-agent $cn0 $udp_
 $mr0 attach-agent $null_ $eface0_mr0 4
 $handover_mr0 add-flow $null_ $udp_ $eface0_mr0 1 ;#2000.
 		
-$mr1 attach-agent $null_ $eface0_mr1 4
-$handover_mr1 add-flow $null_ $udp_ $eface0_mr1 1 ;#2000.
-		
-#
-# set for UMTS
-#
 # do registration in UMTS. This will create the MACs in UE and base stations
 $ns node-config -llType UMTS/RLC/AM \
 	-downlinkBW 384kbs \
@@ -849,60 +603,81 @@ set dch0 [$ns create-dch $eface0_mr0 $null_]; # multiface node receiver
 $ns attach-dch $eface0_mr0 $handover_mr0 $dch0
 $ns attach-dch $eface0_mr0 $nd_eface0_mr0 $dch0
 
-set dch1 [$ns create-dch $eface0_mr1 $null_]; # multiface node receiver
-$ns attach-dch $eface0_mr1 $handover_mr1 $dch1
-$ns attach-dch $eface0_mr1 $nd_eface0_mr1 $dch1
-
-#
 # Now we can register the MIH module with all the MACs
-#
-#######################
-#		configure mr 0
 set tmp2 [$eface0_mr0 set mac_(2)] ;#in UMTS and using DCH the MAC to use is 2 (0 and 1 are for RACH and FACH)
 $tmp2 mih $mih_mr0
 $mih_mr0 add-mac $tmp2
 set tmp2 [$eface1_mr0 set mac_(0)] ;#in 802.11 one interface is created
 $tmp2 mih $mih_mr0
 $mih_mr0 add-mac $tmp2
+
 set tmp2 [$eface2_mr0 set mac_(0)] ;#in 802.11 one interface is created
 $tmp2 mih $mih_mr0
 $mih_mr0 add-mac $tmp2
 
-#######################
-#		configure mr 1
-# Now we can register the MIH module with all the MACs
-set tmp2 [$eface0_mr1 set mac_(2)] ;#in UMTS and using DCH the MAC to use is 2 (0 and 1 are for RACH and FACH)
-$tmp2 mih $mih_mr1
-$mih_mr1 add-mac $tmp2
-set tmp2 [$eface1_mr1 set mac_(0)] ;#in 802.11 one interface is created
-$tmp2 mih $mih_mr1
-$mih_mr1 add-mac $tmp2
-set tmp2 [$eface2_mr1 set mac_(0)] ;#in 802.11 one interface is created
-$tmp2 mih $mih_mr1
-$mih_mr1 add-mac $tmp2
+#set tmp2 [$nemo set mac_(0)]
+#$tmp2 mih $mih
+#$mih add-mac $tmp2
+
+#set tmp2 [$nemo_node set mac_(0)]
+#$tmp2 mih $nemo_node_mih
+#$nemo_node_mih add-mac $tmp2
 
 
-#
-#create traffic: mysip application between udp_s and udp_r
-#
 
 #	Setup a MM UDP connection
 set udp_s [new Agent/UDP/Udpmysip]
 set udp_r [new Agent/UDP/Udpmysip]
 set udp_server [new Agent/UDP/Udpmysip]
+#$ns attach-agent $router0 $udp_s 3
+#$ns attach-agent $multiFaceNode $udp_r	3
+#
+#$ns attach-agent $router1 $udp_server 3
 
 $cn0 attach $udp_s 3
+#$router1 attach $udp_server 3
 $ha attach $udp_server 3
 
 $udp_s set-mipv6 $mipv6_cn0
-$udp_r set-mipv6 $mipv6_mn1
+#$udp_r set-mipv6 $handover
+$udp_r set-mipv6 $mipv6_mn0
+
+#$udp_s target $mipv6_cn
+#$udp_r target $handover <-----no use
 
 
+
+
+#$mipv6_cn set-udpmysip $udp_s <- no sip
+#$handover set-udpmysip $udp_r
+#$mipv6_mn set-udpmysip $udp_r <- no sip
+
+#$handover mipv6-interface $iface0
+
+#$iface0 attach $udp_r 3
+#$iface1 attach $udp_r 3
+
+#[$multiFaceNode set dmux_] install 3 $udp_r
+
+#[$router1 set dmux_] install 3 $udp_server
+#[$router0 set dmux_] install 3 $udp_s
+#[$iface0 set dmux_] install 3 $udp_r
+#[$iface1 set dmux_] install 3 $udp_r
+#$multiFaceNode add-target $udp_r 3
+
+#$ns connect $udp_s $udp_r 
+
+#$multiFaceNode attach-agent $udp_r $iface0 3
 $mn0 attach-agent $udp_r $eface0_mn0 3
 $handover_mr0 add-flow $udp_r $udp_s $eface0_mr0 2 ;#2000.
 
-$mn1 attach-agent $udp_r $eface0_mn1 3
-$handover_mr1 add-flow $udp_r $udp_s $eface0_mr1 2 ;#2000.
+#[$iface0 set dmux_] install 3 $multiFaceNode
+
+#set dch1 [$ns create-dch $iface0 $udp_r]; 
+#$ns attach-dch $iface0 $udp_r $dch0
+
+#$ns attach-dch $iface0 $nemo_mr_eface1 $dch1
+#set dch2 [$ns create-dch $iface0 $nemo_mr_eface1]
 
 $udp_s set packetSize_ 1000
 $udp_r set packetSize_ 1000
@@ -917,9 +692,7 @@ $mysipapp_s attach-agent $udp_s
 $mysipapp_r attach-agent $udp_r
 $mysipapp_server attach-agent $udp_server
 
-#$mysipapp_r set_addr [$eface0_mn0 node-addr]
-#change
-$mysipapp_r set_addr [$eface0_mn1 node-addr]
+$mysipapp_r set_addr [$eface0_mn0 node-addr]
 
 $mysipapp_s set pktsize_ 1000
 $mysipapp_s set random_ false
@@ -969,7 +742,22 @@ $ns at 60 "$mysipapp_r send_invite 1000 5.0.3"
 $ns at [expr $moveStop - 40] "$mysipapp_s dump_handoff_info" 
 
 
+#(1,1,n)
+$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+$handover_mr0 set-mr 8.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
+
+#(1,n,1)
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 9.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+
+
+#(1,n,n)
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 9.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+
+
+$handover_mr0 set-node-type $node_type(MR)
 
 #$ns at [expr $moveStart+20] "$mysipapp_r send_invite 1000 1.0.0"
 
