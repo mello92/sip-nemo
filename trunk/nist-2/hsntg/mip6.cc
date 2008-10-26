@@ -771,9 +771,17 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 	if(node_type_==MR)
 	{
 		//debug("MIPv6 MR\n");
+		
+		
 		if(nh->type()==BU) 
 		{
 			delete_tunnel(p);
+			BUEntry* bu = get_entry_by_addr(iph->daddr());
+			if(!bu)
+			{
+				debug("bu false\n");
+				
+			
 					
 			if (nh->H()==ON) 
 			{
@@ -802,8 +810,10 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 				add_tunnel(p);
 				
 				//	change mn entry coa to outside coa
+				//	change mn entry eface to outdise eface
 				mn->caddr() = bu->caddr();
-				//dump();
+				mn->eface_agent_ = bu->eface_agent_;
+				dump();
 				
 				//	change car-of-address to mr-ha hoa
 				nh->coa()=bu->haddr();
@@ -829,7 +839,14 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 					get_iface_agent_by_prefix(prefix)->send_bu_ack(p);
 				}
 			}
-			
+			} else {
+							debug("bu true\n");
+							//	if daddr is MN in the binding list -> forward to MN
+							int prefix = iph->daddr() & 0xFFFFF800;
+							debug("prefix= %s \n", Address::instance().print_nodeaddr(prefix));
+							Packet* p_tunnel = p->copy();
+							get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
+						}
 		}
 		else if (nh->type()==BACK) 
 		{
@@ -867,10 +884,28 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 					}
 					
 				} else {
-					iph->saddr()=addr();
+					
+					//	if	MR_HA recv BU to MN -> forward to MR
+					
+					int prefix = iph->daddr() & 0xFFFFF800;
+					debug("prefix=%s \n",Address::instance().print_nodeaddr(prefix));
+					BUEntry* bu = get_entry_by_prefix(prefix);
+					if(!bu)
+					{
+						//	if MR_HA recv BU from MN -> change saddr to MR_HA
+						iph->saddr()=addr();
+						
+					} else {
+						//	if	MR_HA recv BU to MN -> forward to MR
+						add_tunnel(p);
+						iph->daddr() = bu->caddr();
+						
+					}
+					
+						
 					Packet* p_untunnel = p->copy();
 					send(p_untunnel,0);
-					debug("At %f MIPv6 MR_HA Agent in %s send BU packet to MN_HA or CN %s\n", 
+					debug("At %f MIPv6 MR_HA Agent in %s send BU packet to MN_HA or CN or MN %s\n", 
 							NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 				}
 
@@ -929,7 +964,19 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 	else if (node_type_==MN)
 	{
 		debug("MIPv6 MN\n");
-		if (nh->type()==BACK) 
+		if(nh->type()==BU) 
+		{
+			if (nh->H()==ON) 
+			{
+				registration(p,MN);
+				dump();
+				debug("At %f MIPv6 MN Agent in %s recv BU packet\n", NOW, MYNUM);
+			}
+//			if (nh->A()==ON) 
+//			{
+//				send_bu_ack(p);
+//			}
+		} else if (nh->type()==BACK) 
 		{
 			recv_bu_ack(p);
 		}
@@ -1273,9 +1320,25 @@ void MIPV6Agent::tunneling(Packet* p)
 			if(!bu)
 			{
 				//	daddr search by caddr is not in binding table 
-				add_tunnel(p);
+				
 				bu = get_entry_by_addr(iph->saddr());
+				
+				//	mn entry -> compare if eface is the same as coa
+				//	if different ->  tunnel to the ori ha
+				if( bu->caddr()!=bu->eface()->get_iface()->address() ) {
+					BUEntry* tunnel = get_mr_ha_entry_by_caddr(bu->eface()->get_iface()->address());
+					add_tunnel(p);
+					iph->daddr() = tunnel->addr();
+					iph->dport()= port();
+					debug("MR tunnel-in-tunnel to other MR-HA\n");
+				}
+				
 				BUEntry* out = get_mr_ha_entry_by_caddr(bu->caddr());
+				
+				//iph->saddr()=out->addr();
+				nh->coa()=out->haddr();
+				add_tunnel(p);
+				
 				iph->daddr() = out->addr();
 				iph->dport()= port();
 				Packet* p_tunnel = p->copy();
@@ -1332,6 +1395,26 @@ void MIPV6Agent::tunneling(Packet* p)
 		
 		if(iph->saddr()==bu->eface()->get_iface()->address())
 		{
+			
+			//	lookup if destination in the binding table 
+			//	if not then tunnel packet to HA
+			BUEntry *dest = get_entry_by_caddr(iph->daddr());
+			if(!dest)
+			{
+				add_tunnel(p);
+				
+				//	send packet to HA
+				bu = bulist_head_.lh_first;
+				
+				//	save daddr temporary in nh->haddr
+				nh->haddr()=bu->haddr();
+				nh->coa()=bu->caddr();
+				
+				iph->daddr()=bu->addr();
+				iph->dport()=port();
+				
+			}
+			
 			//	add tunnel and send to ap
 			//	change addr to Ap
 			int prefix = iph->saddr() & 0xFFFFF800;
@@ -1424,9 +1507,12 @@ void MIPV6Agent::tunneling(Packet* p)
 			bu = get_entry_by_prefix(prefix);
 			if(!bu)
 			{
-				add_tunnel(p);
+				if(iph->daddr()!=addr())
+					add_tunnel(p);
 				iph->daddr()=iph->daddr();
 				iph->dport()=port();
+
+				iph->saddr()=addr();
 				Packet* p_tunnel = p->copy();
 				send(p_tunnel,0);
 			} else {
@@ -1490,18 +1576,57 @@ void MIPV6Agent::tunneling(Packet* p)
 		//	delete tunnel and look up MN caddr (MR hoa)
 		//	add tunnel and change daddr to MR hoa and port
 		//	add tunnel and change daddr to MR_HA and port
-		
+		int mr_ha_addr = iph->saddr();
 		delete_tunnel(p);
 		
 		BUEntry* bu = get_entry_by_haddr(iph->daddr());
-		assert(bu!=NULL);
+		//int mr_ha_addr;
+		int mr_haddr;
+		//int mn_addr;
 		
-		add_tunnel(p);
-		iph->daddr()=bu->caddr();
+		if(bu==NULL)
+		{
+			//	if packet from MN 
+			
+			mr_haddr = nh->coa();
+			debug("mr_ha_addr %s mr_haddr %s\n", 
+					Address::instance().print_nodeaddr(mr_ha_addr),
+					Address::instance().print_nodeaddr(mr_haddr));
+			delete_tunnel(p);
+			bu = get_entry_by_haddr(iph->daddr());
+			
+			assert(bu!=NULL);
+		}
+		//	else if packet from CN
 		
-		add_tunnel(p);
-		iph->daddr()=bu->addr();
-		iph->dport()=port();
+		if (bu->addr()==bu->caddr())
+		{
+			//	packet to CN
+			// add tunnel and change daddr to CN coa
+//			delete_tunnel(p);
+			//mn_addr=iph->saddr();
+//			hdrc->size()-=20;
+			iph->daddr()=bu->caddr();
+			
+			nh->coa()=mr_haddr;
+			add_tunnel(p);
+			iph->daddr()=bu->caddr();
+			iph->saddr()=mr_ha_addr;
+			iph->dport()=port();
+						
+		} else {
+			//	packet to MN
+			//	add tunnel and change daddr to MR hoa and port
+			//	add tunnel and change daddr to MR_HA and port
+			
+			add_tunnel(p);
+			iph->daddr()=bu->caddr();
+
+			add_tunnel(p);
+			iph->daddr()=bu->addr();
+			iph->dport()=port();
+		}
+		
 		
 		Packet* p_tunnel = p->copy();
 		send(p_tunnel,0);
@@ -1519,11 +1644,54 @@ void MIPV6Agent::tunneling(Packet* p)
 		//	if not then tunnel packet to MN_HA
 		
 		if(iph->daddr()==addr()) {
+			//	register if mn not in the binding table 
 			//	delete tunnel and send to agent
 			//	register if mn not in the binding table 
-			
+			int mr_ha_addr=iph->saddr();
 			delete_tunnel(p);
-//			hdrc->size()-=20;
+			int mn_addr=iph->saddr();
+			
+			debug("mr_ha_addr %s mn_addr %s\n", 
+								Address::instance().print_nodeaddr(mr_ha_addr),
+								Address::instance().print_nodeaddr(mn_addr));
+			iph->saddr()=mr_ha_addr;
+			BUEntry* bu = get_entry_by_addr(iph->saddr());
+			if(!bu)
+			{
+				registration(p,MN);
+				dump();
+				bu = get_entry_by_type(MN_HA);
+				Packet* p_bu = allocpkt();
+				hdr_ip *bu_iph = HDR_IP(p_bu);
+				hdr_cmn *bu_hdrc= HDR_CMN(p_bu);
+				hdr_nemo *bu_nh= HDR_NEMO(p_bu);
+				bu_nh->coa() = addr();
+				bu_nh->haddr() = bu->haddr();	
+				bu_nh->H()=ON;
+				bu_nh->A()=ON;
+				bu_nh->type()=BU;
+				bu_nh->lifetime()=TIME_INFINITY;
+				bu_nh->seqno()=0;
+								
+				bu_iph->saddr() = addr();
+				bu_iph->sport() = port();
+				bu_iph->daddr()= mn_addr;
+				bu_iph->dport() = port();
+				bu_hdrc->ptype() = PT_NEMO;
+				bu_hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+				
+				add_tunnel(p_bu);				
+				bu_iph->daddr() = iph->saddr();
+				
+				send(p_bu,0);
+
+				debug("At %f MIPv6 CN Agent in %s send BU packet to %s\n", 
+						NOW, MYNUM, Address::instance().print_nodeaddr(bu_iph->daddr()));
+				
+			}
+			
+
+			hdrc->size()-=20;
 			Packet* p_untunnel = p->copy();
 			send(p_untunnel,0);
 			
@@ -1809,16 +1977,17 @@ BUEntry* MIPV6Agent::get_entry_by_haddr(int haddr)
 	return NULL;
 }
 
-//BUEntry* MIPV6Agent::get_entry_by_caddr(int caddr)
-//{
-//	BUEntry *bu =  bulist_head_.lh_first;
-//	for(;bu;bu=bu->next_entry()) {
-//		if(bu->caddr()==caddr) {
-//			return bu;
-//		}
-//	}
-//	return NULL;
-//}
+BUEntry* MIPV6Agent::get_entry_by_caddr(int caddr)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->caddr()==caddr) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
 BUEntry* MIPV6Agent::get_entry_by_addr(int addr)
 {
 	BUEntry *bu =  bulist_head_.lh_first;
