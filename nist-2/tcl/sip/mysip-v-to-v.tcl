@@ -701,13 +701,18 @@ $mysipapp_s myID_URL 1000 1.0.0
 #$mysipapp_server myID_URL 88 2.0.0
 #$mysipapp_server add_URL_record 9999  2.0.0 2.0.129
 
+#testing invite CN
+#$mysipapp_server add_URL_record 9999  5.0.0 5.0.129
+$mysipapp_server add_URL_record 1000  5.0.3 1.0.0
+$ns at 55 "$mipv6_cn0 binding"
+
 
 $mysipapp_r myID_URL 9999 5.0.0
 $mysipapp_server myID_URL 88 5.0.0
 $mysipapp_server add_URL_record 9999  5.0.0 5.0.129
 
-#$mysipapp_s log_file log handoff
-$mysipapp_r log_file log handoff 
+$mysipapp_s log_file log handoff
+
 
 
 puts " time [expr $moveStart+80]"
@@ -732,24 +737,24 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 60 "$mysipapp_s send_invite 9999 5.0.1"
+$ns at 60 "$mysipapp_r send_invite 1000 5.0.3"
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
-$ns at [expr $moveStop - 40] "$mysipapp_r dump_handoff_info" 
+$ns at [expr $moveStop - 40] "$mysipapp_s dump_handoff_info" 
 
 
 #(1,1,n)
-#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface1_mr0
-#$handover_mr0 set-mr 8.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface1_mr0
+$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+$handover_mr0 set-mr 8.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 
 #(1,n,1)
-$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-$handover_mr0 set-mr 9.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 9.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 
 #(1,n,n)
-#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface1_mr0
-#$handover_mr0 set-mr 9.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface1_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 9.0.0 8.0.2 11.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 
 $handover_mr0 set-node-type $node_type(MR)

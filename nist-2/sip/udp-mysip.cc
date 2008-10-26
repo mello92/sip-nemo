@@ -419,10 +419,10 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			send_invite_to_temp_move_pkt(p);
 			ih->prio_ = 14;
 		}
-		if(mh->method==1)
-		{
-			hdrc->size()-=20;
-		}
+//		if(mh->method==1)
+//		{
+//			hdrc->size()-=20;
+//		}
 		if(mh->method==9)
 		{
 			
