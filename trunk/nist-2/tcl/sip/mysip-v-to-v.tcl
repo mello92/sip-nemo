@@ -40,8 +40,8 @@ global ns
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 
 # (1,n,n)
-#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
+#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
 # seed the default RNG
 global defaultRNG
@@ -366,7 +366,7 @@ if {$quiet == 0} {
 }
 $bs_eface2_mr1_Mac bss_id $AP_ADDR_0_2
 $bs_eface2_mr1_Mac enable-beacon
-$bs_eface2_mr1_Mac set-channel 5
+$bs_eface2_mr1_Mac set-channel 6
 
 
 # creation of the wireless interface 802.11
@@ -553,7 +553,7 @@ $nd_rncUMTS add-ra-target 0.0.2 ;#in UMTS there is no notion of broadcast.
 set nd_eface0_mr0 [$eface0_mr0 install-nd]
 #######################
 #		configure mr 1
-set nd_eface0_mr1 [$eface0_mr0 install-nd]
+set nd_eface0_mr1 [$eface0_mr1 install-nd]
 
 # BS WLAN 1
 #######################
@@ -731,16 +731,16 @@ $nd_eface0_mr1 set-ifmanager $handover_mr1
 $handover_mr1 set-node-type $node_type(MR)
 
 #(1,1,n)
-$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+#$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 #(1,n,1)
 #$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
 #$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 #(1,n,n)
-#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-#$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 
 # MR HA
@@ -898,8 +898,8 @@ $udp_s set-mipv6 $mipv6_cn0
 $udp_r set-mipv6 $mipv6_mn1
 
 
-$mn0 attach-agent $udp_r $eface0_mn0 3
-$handover_mr0 add-flow $udp_r $udp_s $eface0_mr0 2 ;#2000.
+#$mn0 attach-agent $udp_r $eface0_mn0 3
+#$handover_mr0 add-flow $udp_r $udp_s $eface0_mr0 2 ;#2000.
 
 $mn1 attach-agent $udp_r $eface0_mn1 3
 $handover_mr1 add-flow $udp_r $udp_s $eface0_mr1 2 ;#2000.

@@ -1944,16 +1944,17 @@ BUEntry* MIPV6Agent::get_entry_by_iface(Node *iface)
 	}
 	return NULL;
 }
-BUEntry* MIPV6Agent::get_entry_without_iface(Node *iface)
-{
-	BUEntry *bu =  bulist_head_.lh_first;
-	for(;bu;bu=bu->next_entry()) {
-		if(bu->eface()!=NULL && bu->eface()->get_iface()!=iface) {
-			return bu;
-		}
-	}
-	return NULL;
-}
+
+//BUEntry* MIPV6Agent::get_entry_without_iface(Node *iface)
+//{
+//	BUEntry *bu =  bulist_head_.lh_first;
+//	for(;bu;bu=bu->next_entry()) {
+//		if(bu->eface()!=NULL && bu->eface()->get_iface()!=iface) {
+//			return bu;
+//		}
+//	}
+//	return NULL;
+//}
 
 BUEntry* MIPV6Agent::get_entry_by_prefix(int prefix)
 {
@@ -2020,10 +2021,32 @@ BUEntry* MIPV6Agent::get_mr_ha_entry_by_caddr(int caddr)
 	return NULL;
 }
 
+BUEntry* MIPV6Agent::get_mr_ha_entry_by_iface(Node *iface)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_HA && bu->eface()!=NULL && bu->eface()->get_iface()==iface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+BUEntry* MIPV6Agent::get_mr_ha_entry_without_iface(Node *iface)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_HA && bu->eface()!=NULL && bu->eface()->get_iface()!=iface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
 void MIPV6Agent::re_homing(Node *iface)
 {
-	BUEntry* bu_break = get_entry_by_iface(iface);
-	BUEntry* bu_new = get_entry_without_iface(iface);
+	BUEntry* bu_break = get_mr_ha_entry_by_iface(iface);
+	BUEntry* bu_new = get_mr_ha_entry_without_iface(iface);
 	BUEntry* bu_mn = get_entry_by_type(MN);
 	
 	assert(bu_break!=NULL);

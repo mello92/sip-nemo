@@ -431,12 +431,14 @@ class MIPV6Agent : public IFMNGMTAgent {
 		NEMOAgent* get_iface_agent_by_prefix(int prefix);
 		NEMOAgent* get_eface_agent_by_prefix(int prefix);
 		BUEntry* get_entry_by_iface(Node *iface);
-		BUEntry* get_entry_without_iface(Node *iface);
+//		BUEntry* get_entry_without_iface(Node *iface);
 		BUEntry* get_entry_by_prefix(int prefix);
 		BUEntry* get_entry_by_haddr(int haddr);
 		BUEntry* get_entry_by_addr(int addr);
 		BUEntry* get_entry_by_type(Mipv6NodeType type);
 		BUEntry* get_mr_ha_entry_by_caddr(int caddr);
+		BUEntry* get_mr_ha_entry_by_iface(Node *iface);
+		BUEntry* get_mr_ha_entry_without_iface(Node *iface);
 		
 		BUEntry* get_entry_by_caddr(int caddr);
 		
