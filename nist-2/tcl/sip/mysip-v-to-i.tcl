@@ -708,16 +708,16 @@ $nd_eface0_mr0 set-ifmanager $handover_mr0
 $handover_mr0 set-node-type $node_type(MR)
 
 #(1,1,n)
-$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #(1,n,1)
 #$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
 #$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #(1,n,n)
-#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-#$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #######################
 #		configure mr 1
