@@ -376,6 +376,7 @@ class MIPV6Agent : public IFMNGMTAgent {
   
   //----------------sem start------------------//
 //  void send_bu_msg(Node *iface);
+//  int v_to_v ;
   void send_bu_msg(int prefix, Node *iface);
 	void tunneling(Packet* p);
 	void re_homing(Node *iface);
@@ -427,6 +428,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 		
 		void add_tunnel(Packet* p);
 		void delete_tunnel(Packet* p);
+		int size_tunnel(Packet* p);
 		  
 		NEMOAgent* get_iface_agent_by_prefix(int prefix);
 		NEMOAgent* get_eface_agent_by_prefix(int prefix);

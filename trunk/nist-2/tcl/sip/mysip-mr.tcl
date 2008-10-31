@@ -40,8 +40,8 @@ global ns
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 
 # (1,n,n)
-#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
+#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
 # seed the default RNG
 global defaultRNG
@@ -737,8 +737,8 @@ $ns at [expr $moveStop - 40] "$mysipapp_r dump_handoff_info"
 
 
 #(1,1,n)
-$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
-$handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+#$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+#$handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 
 #(1,n,1)
@@ -747,8 +747,8 @@ $handover set-mr 8.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 
 #(1,n,n)
-#$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
-#$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
+$handover set-mr 8.0.0 8.0.1 6.0.0 $nemo_mr_eface1 $nemo_mr_iface1
+$handover set-mr 9.0.0 8.0.2 11.0.0 $nemo_mr_eface2 $nemo_mr_iface1
 
 
 $handover set-node-type $node_type(MR)
