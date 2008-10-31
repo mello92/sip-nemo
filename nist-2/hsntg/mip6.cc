@@ -1522,13 +1522,19 @@ void MIPV6Agent::tunneling(Packet* p)
 			
 			int mr_ha_addr=iph->saddr();
 			delete_tunnel(p);
+			
+			if(size_tunnel(p)>0)
+				delete_tunnel(p);
+			
 			int mn_addr=iph->saddr();
 
 			debug("MN mr_ha_addr %s mn_addr %s\n", 
 					Address::instance().print_nodeaddr(mr_ha_addr),
 					Address::instance().print_nodeaddr(mn_addr));
+			bu = get_entry_by_caddr(mn_addr);
 			iph->saddr() = mr_ha_addr;
-			bu = get_entry_by_addr(iph->saddr());
+//			iph->saddr() = mr_ha_addr;
+//			bu = get_entry_by_addr(iph->saddr());
 			//bu = get_entry_by_haddr(nh->haddr());
 			if(!bu)
 			{
@@ -1553,7 +1559,7 @@ void MIPV6Agent::tunneling(Packet* p)
 								
 				bu_iph->saddr() = my_addr;
 				bu_iph->sport() = port();
-				bu_iph->daddr()= nh->coa();
+				bu_iph->daddr()= mn_addr;
 				bu_iph->dport() = port();
 				bu_hdrc->ptype() = PT_NEMO;
 				bu_hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
@@ -1571,7 +1577,8 @@ void MIPV6Agent::tunneling(Packet* p)
 			
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
-//			hdrc->size()-=20;
+			
+			hdrc->size()-=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
@@ -1636,6 +1643,11 @@ void MIPV6Agent::tunneling(Packet* p)
 				//	-> mean from MR_HA,	we need to keep it
 				//	if saddr same
 				//	->	no change
+				if(iph->saddr()!= mr_ha_addr)
+				{
+					add_tunnel(p);
+					iph->saddr()= mr_ha_addr;
+				}
 //				iph->saddr()= mr_ha_addr;
 				
 				BUEntry* other_ha = get_entry_by_haddr(bu->caddr());
@@ -1655,7 +1667,7 @@ void MIPV6Agent::tunneling(Packet* p)
 					iph->daddr()=other_ha->caddr();
 					iph->dport()=port();
 				}
-					
+				
 				Packet* p_tunnel = p->copy();
 				send(p_tunnel,0);
 			}
