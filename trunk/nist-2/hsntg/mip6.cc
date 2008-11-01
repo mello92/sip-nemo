@@ -1510,6 +1510,8 @@ void MIPV6Agent::tunneling(Packet* p)
 			iph->daddr()=prefix;
 			iph->dport()=port();
 			
+			hdrc->size()-=20;
+			
 			Packet* p_tunnel = p->copy();
 			bu->eface()->send(p_tunnel,0);
 			debug("At %f MIPv6 MN Agent in %s send tunnel packet to %s\n", 
@@ -1578,7 +1580,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-			hdrc->size()-=20;
+//			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
@@ -1840,7 +1842,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			}
 			
 			iph->daddr()=addr();
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			Packet* p_untunnel = p->copy();
 			send(p_untunnel,0);
 			
