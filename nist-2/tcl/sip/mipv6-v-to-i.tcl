@@ -40,8 +40,8 @@ global ns
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 
 # (1,n,n)
-#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
+#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
 # seed the default RNG
 global defaultRNG
@@ -708,16 +708,16 @@ $nd_eface0_mr0 set-ifmanager $handover_mr0
 $handover_mr0 set-node-type $node_type(MR)
 
 #(1,1,n)
-$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #(1,n,1)
 #$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
 #$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #(1,n,n)
-#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-#$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+$handover_mr0 set-mr 9.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #######################
 #		configure mr 1
@@ -731,16 +731,16 @@ $nd_eface0_mr1 set-ifmanager $handover_mr1
 $handover_mr1 set-node-type $node_type(MR)
 
 #(1,1,n)
-$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+#$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 #(1,n,1)
 #$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
 #$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 #(1,n,n)
-#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-#$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+$handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 
 # MR HA
@@ -891,15 +891,15 @@ set udp_s [new Agent/UDP/Udpmysip]
 set udp_r [new Agent/UDP/Udpmysip]
 set udp_server [new Agent/UDP/Udpmysip]
 
-#$cn0 attach $udp_s 3
+$cn0 attach $udp_s 3
 $ha attach $udp_server 3
 
-$udp_s set-mipv6 $mipv6_mn0
+$udp_s set-mipv6 $mipv6_cn0
 $udp_r set-mipv6 $mipv6_mn1
 
 
-$mn0 attach-agent $udp_s $eface0_mn0 3
-$handover_mr0 add-flow $udp_s $udp_r $eface0_mr0 2 ;#2000.
+#$mn0 attach-agent $udp_r $eface0_mn0 3
+#$handover_mr0 add-flow $udp_r $udp_s $eface0_mr0 2 ;#2000.
 
 $mn1 attach-agent $udp_r $eface0_mn1 3
 $handover_mr1 add-flow $udp_r $udp_s $eface0_mr1 2 ;#2000.
@@ -917,10 +917,9 @@ $mysipapp_s attach-agent $udp_s
 $mysipapp_r attach-agent $udp_r
 $mysipapp_server attach-agent $udp_server
 
-$mysipapp_s set_addr [$eface0_mn0 node-addr]
+#$mysipapp_r set_addr [$eface0_mn0 node-addr]
 #change
 $mysipapp_r set_addr [$eface0_mn1 node-addr]
-
 
 $mysipapp_s set pktsize_ 1000
 $mysipapp_s set random_ false
@@ -932,7 +931,7 @@ $mysipapp_s myID_URL 1000 1.0.0
 #testing invite CN
 #$mysipapp_server add_URL_record 9999  5.0.0 5.0.129
 $mysipapp_server add_URL_record 1000  5.0.3 1.0.0
-#$ns at 55 "$mipv6_cn0 binding"
+$ns at 55 "$mipv6_cn0 binding"
 
 
 $mysipapp_r myID_URL 9999 5.0.0
@@ -965,7 +964,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 60 "$mysipapp_r send_invite 1000 5.0.1"
+$ns at 60 "$mysipapp_r send_invite 1000 5.0.3"
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop - 40] "$mysipapp_s dump_handoff_info" 
 
