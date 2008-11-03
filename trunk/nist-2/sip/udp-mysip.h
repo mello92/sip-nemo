@@ -65,6 +65,15 @@ public:
 	{
 		LIST_INSERT_HEAD(head, this, link);
 	}
+	
+	inline void cn_init_entry(int addr_id, int addr, int url_id, int url)
+	{
+		addr_id_ = addr_id;
+		addr_ = addr;
+		url_id_ = url_id;
+		url_ = url;
+	}
+	
 	inline void mn_init_entry(int addr_id, int addr, int url_id, int url, NEMOAgent *eface_agent)
 	{
 		addr_id_ = addr_id;
@@ -187,6 +196,7 @@ public:
 	int cport_;
 	
 	void send_reg_msg(int prefix, Node *iface);
+	void send_reg_msg();
 	void re_homing(Node *iface);
 	
 protected:
@@ -201,7 +211,8 @@ private:
 	void dump();
 	void show_sipheader(Packet* p);
 	void registration(Packet* p, SipNodeType type);
-	SIPEntry*  get_entry_by_url_id(int url_id);
+	SIPEntry* get_entry_by_url_id(int url_id);
+	SIPEntry* get_entry_by_url(int url);
 	SIPEntry* get_entry_by_prefix(int prefix);
 	SIPEntry* get_entry_by_iface(Node *iface);
 	SIPEntry* get_entry_without_iface(Node *iface);
@@ -209,6 +220,7 @@ private:
 	NEMOAgent* get_iface_agent_by_prefix(int prefix);
 	
 	SIPEntry* get_mr_ha_entry_by_caddr(int caddr);
+	SIPEntry* get_mn_entry_by_url_id(int url_id);
 	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);
