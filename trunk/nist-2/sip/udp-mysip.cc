@@ -433,7 +433,25 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			if(!bu)
 			{
 				//	return error;
+					//assert(bu!=NULL);
+				//	sent to CN
+					bu = get_cn_entry_by_url_id(mh->From_id);
+					
 					assert(bu!=NULL);
+					
+					iph->daddr() = bu->con();
+					SIPEntry* mn = get_mn_entry_by_url_id(mh->To_id);
+					mh->contact = mn->con();
+					mh->cip = mn->con();
+					
+					bu = get_mr_ha_entry_by_caddr(mn->con());
+									
+					assert(bu!=NULL);
+									
+					Packet* p_tunnel = p->copy();
+
+					bu->eface()->send(p_tunnel,0);
+					
 			} else {
 				
 				int prefix = bu->add() & 0xFFFFF800;
@@ -523,7 +541,17 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 	} else if(node_type_ == SIP_MN) {
 		if(mh->method==0)
 		{
+			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv invite packet\n", NOW, MYNUM);
+		}
+		if(mh->method==1)
+		{
+			hdrc->size()-=20;
+			debug("At %f UdpmysipAgent MN in %s recv 200ok packet\n", NOW, MYNUM);
+		}
+		if(mh->method==7)
+		{
+			hdrc->size()-=20;
 		}
 		if(mh->method==6)
 		{
@@ -933,6 +961,17 @@ SIPEntry* UdpmysipAgent::get_mn_entry_by_url_id(int url_id)
 	return NULL;
 }
 
+SIPEntry* UdpmysipAgent::get_cn_entry_by_url_id(int url_id)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_CN && bu->url_id()==url_id) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
 void UdpmysipAgent::send_temp_move_pkt(Packet* p)
 {
 	hdr_ip *iph= HDR_IP(p);
@@ -942,7 +981,16 @@ void UdpmysipAgent::send_temp_move_pkt(Packet* p)
 	if(!bu)
 	{
 		//	return error;
-		assert(bu!=NULL);
+		//	assert(bu!=NULL);
+		//	send temp_move to mr
+		mh->method = 6;
+		
+		SIPEntry* bu = get_entry_by_type(SIP_MR);
+		iph->daddr() = mh->contact;
+		iph->dport() = port();
+		mh->contact_id = mh->requestURL_id;
+		mh->contact = bu->con();	
+		
 	} else {
 		mh->method = 6;
 		

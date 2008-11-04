@@ -221,6 +221,7 @@ private:
 	
 	SIPEntry* get_mr_ha_entry_by_caddr(int caddr);
 	SIPEntry* get_mn_entry_by_url_id(int url_id);
+	SIPEntry* get_cn_entry_by_url_id(int url_id);
 	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);
