@@ -40,8 +40,8 @@ global ns
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 
 # (1,n,n)
-#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
+#Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
 # seed the default RNG
 global defaultRNG
@@ -85,6 +85,7 @@ Mac/802_11 set debug_ 0
 Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set confidence_th_ 100
 
 Agent/NEMO set debug_ 1
+Agent/UDP/Udpmysip set debug_ 1
 
 #Rate at which the nodes start moving
 set moveStart 10
@@ -153,6 +154,7 @@ lappend tmp 1                                      ;# mr1
 AddrParams set nodes_num_ $tmp
 
 array set node_type {MN 0 MN_HA 1 MR 2 MR_HA 3 CN 4}
+array set node_type_sip {SIP_MN 0 SIP_MN_HA 1 SIP_MR 2 SIP_MR_HA 3 SIP_CN 4}
 
 # configure UMTS. 
 # Note: The UMTS configuration MUST be done first otherwise it does not work
@@ -708,8 +710,8 @@ $nd_eface0_mr0 set-ifmanager $handover_mr0
 $handover_mr0 set-node-type $node_type(MR)
 
 #(1,1,n)
-$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
-$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+#$handover_mr0 set-mr 8.0.0 8.0.2 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 #(1,n,1)
 #$handover_mr0 set-mr 8.0.0 8.0.1 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
@@ -731,8 +733,8 @@ $nd_eface0_mr1 set-ifmanager $handover_mr1
 $handover_mr1 set-node-type $node_type(MR)
 
 #(1,1,n)
-$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
-$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+#$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+#$handover_mr1 set-mr 11.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 #(1,n,1)
 #$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
@@ -891,12 +893,73 @@ set udp_s [new Agent/UDP/Udpmysip]
 set udp_r [new Agent/UDP/Udpmysip]
 set udp_server [new Agent/UDP/Udpmysip]
 
+#
+#	enable udpmysip	(create udpmysip)
+#
+#######################
+#		configure mr 0
+set udp_mr0 [new Agent/UDP/Udpmysip]
+set udp_mr0_ha1 [new Agent/UDP/Udpmysip]
+set udp_mr0_ha2 [new Agent/UDP/Udpmysip]
+#######################
+#		configure mr 1
+set udp_mr1 [new Agent/UDP/Udpmysip]
+set udp_mr1_ha1 [new Agent/UDP/Udpmysip]
+set udp_mr1_ha2 [new Agent/UDP/Udpmysip]
+
+
+#
+#	enable udpmysip (set-node-type)
+#
+#######################
+#		configure mr 0
+$udp_mr0 set-node-type $node_type_sip(SIP_MR)
+$udp_mr0_ha1 set-node-type $node_type_sip(SIP_MR_HA)
+$udp_mr0_ha2 set-node-type $node_type_sip(SIP_MR_HA)
+#######################
+#		configure mr 1
+$udp_mr1 set-node-type $node_type_sip(SIP_MR)
+$udp_mr1_ha1 set-node-type $node_type_sip(SIP_MR_HA)
+$udp_mr1_ha2 set-node-type $node_type_sip(SIP_MR_HA)
+#######################
+#		configure others
+$udp_s set-node-type $node_type_sip(SIP_MN)
+$udp_r set-node-type $node_type_sip(SIP_MN)
+$udp_server set-node-type $node_type_sip(SIP_MN_HA)
+
+
+
+$udp_r set-sip-mn 88 5.0.0 8888 5.0.0 $nemo_eface0_mn1
+$udp_s set-sip-mn 88 5.0.0 8889 5.0.0 $nemo_eface0_mn0
+#######################
+#		configure mr 0
+$udp_mr0 set-sip-mr 88 8.0.0 9999 8.0.0 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+$udp_mr0 set-sip-mr 88 9.0.0 9998 9.0.0 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
+#######################
+#		configure mr 1
+$udp_mr1 set-sip-mr 88 11.0.0 9999 11.0.0 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+$udp_mr1 set-sip-mr 88 12.0.0 9998 12.0.0 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
+
+
 #$cn0 attach $udp_s 3
 $ha attach $udp_server 3
 
-$udp_s set-mipv6 $mipv6_mn0
-$udp_r set-mipv6 $mipv6_mn1
+$mr0_ha1 attach $udp_mr0_ha1 3
+$mr0_ha2 attach $udp_mr0_ha2 3
+$mr1_ha1 attach $udp_mr1_ha1 3
+$mr1_ha2 attach $udp_mr1_ha2 3
 
+$mipv6_mn0 set-udpmysip $udp_s
+$mipv6_mn1 set-udpmysip $udp_r
+$handover_mr0 set-udpmysip $udp_mr0
+$handover_mr1 set-udpmysip $udp_mr1
+
+
+#$udp_s set-mipv6 $mipv6_mn0
+#$udp_r set-mipv6 $mipv6_mn1
+
+$mr0 attach-agent $udp_mr0	$eface0_mr0 3
+$mr1 attach-agent $udp_mr1	$eface0_mr1 3
 
 $mn0 attach-agent $udp_s $eface0_mn0 3
 $handover_mr0 add-flow $udp_s $udp_r $eface0_mr0 2 ;#2000.
@@ -908,6 +971,12 @@ $udp_s set packetSize_ 1000
 $udp_r set packetSize_ 1000
 $udp_server set packetSize_ 1000
 
+$udp_mr0	set packetSize_ 1000
+$udp_mr0_ha1 set packetSize_ 1000
+$udp_mr0_ha2 set packetSize_ 1000
+$udp_mr1 set packetSize_ 1000
+$udp_mr1_ha1 set packetSize_ 1000
+$udp_mr1_ha2 set packetSize_ 1000
 
 #Setup a MM Application
 set mysipapp_s [new Application/mysipApp]
@@ -924,7 +993,9 @@ $mysipapp_r set_addr [$eface0_mn1 node-addr]
 
 $mysipapp_s set pktsize_ 1000
 $mysipapp_s set random_ false
-$mysipapp_s myID_URL 1000 1.0.0
+#$mysipapp_s myID_URL 1000 1.0.0
+$mysipapp_s myID_URL 8889 5.0.0
+
 #$mysipapp_r myID_URL 9999 2.0.0
 #$mysipapp_server myID_URL 88 2.0.0
 #$mysipapp_server add_URL_record 9999  2.0.0 2.0.129
@@ -935,7 +1006,7 @@ $mysipapp_server add_URL_record 1000  5.0.3 1.0.0
 #$ns at 55 "$mipv6_cn0 binding"
 
 
-$mysipapp_r myID_URL 9999 5.0.0
+$mysipapp_r myID_URL 8888 5.0.0
 $mysipapp_server myID_URL 88 5.0.0
 $mysipapp_server add_URL_record 9999  5.0.0 5.0.129
 
@@ -965,7 +1036,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 60 "$mysipapp_r send_invite 1000 5.0.1"
+$ns at 60 "$mysipapp_r send_invite 8889 5.0.0"
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop - 40] "$mysipapp_s dump_handoff_info" 
 
