@@ -312,16 +312,49 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			
 			//	chage daddr to mn ha
 			//	we use header tunnel in mip
-			iph->daddr() = mh->requestURL;
-				
-			Packet* p_tunnel = p->copy();
-
+//			iph->daddr() = mh->requestURL;
+//			iph->saddr()=bu->con();
+//			Packet* p_tunnel = p->copy();
+			
+			Packet* p_tunnel = allocpkt();
+			hdr_ip *iph_tunnel = HDR_IP(p_tunnel);
+			hdr_mysip *mh_tunnel = HDR_MYSIP(p_tunnel);
+			hdr_cmn *hdrc_tunnel = HDR_CMN(p_tunnel);
+						
+			memcpy(iph_tunnel,iph,sizeof(hdr_ip));
+			memcpy(mh_tunnel,mh,sizeof(hdr_mysip));
+					
+			iph_tunnel->daddr() = mh->requestURL;
+			hdrc_tunnel->size() = hdrc->size();
+			
+			debug("MR interface %s \n",
+					Address::instance().print_nodeaddr(bu->eface()->get_iface()->address()));
+//			prefix = bu->con() & 0xFFFFF800;
+//			debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+//			debug("daddr %s dport %d saddr %s sport %d\n",
+//					Address::instance().print_nodeaddr(iph->daddr()),iph->dport(),
+//					Address::instance().print_nodeaddr(iph->saddr()),iph->sport());
+//			if(prefix==0)
+//			{
+////				debug("iface %s\n",bu->eface()->get_iface()->name());
+////				Tcl& tcl = Tcl::instance();
+////				tcl.evalf("%s entry",bu->eface()->get_iface()->name());
+////				NsObject* obj = (NsObject*)TclObject::lookup(tcl.result());
+////				debug("obj %s\n",obj->name());
+////				Scheduler::instance().schedule(obj,p_tunnel->copy(),0.1);
+//
+//				Tcl& tcl = Tcl::instance();
+//				tcl.evalf("%s entry", bu->eface()->get_iface()->name());
+//				NsObject* obj = (NsObject*) TclObject::lookup(tcl.result());
+//				Scheduler::instance().schedule(obj,p->copy(),0.1);
+//			}
+//			else
 			bu->eface()->send(p_tunnel,0);
 			//bu->eface()->send_bu_ha(p_tunnel);
 			//bu->eface()->recv(p_tunnel,0);
 			
 			debug("At %f UdpmysipAgent MR in %s tunnel register packet to %s\n", 
-					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph_tunnel->daddr()));
 						
 		}
 		else if(mh->method==0 || mh->method==7)
@@ -356,12 +389,25 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				Packet* p_tunnel = p->copy();
 				get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 				
+				debug("At %f UdpmysipAgent MR in %s send packet to %s\n", 
+									NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+				
 			} else {
 				//	from MN
+
+				Packet* p_tunnel = allocpkt();
+				hdr_ip *iph_tunnel = HDR_IP(p_tunnel);
+				hdr_mysip *mh_tunnel = HDR_MYSIP(p_tunnel);
+				hdr_cmn *hdrc_tunnel = HDR_CMN(p_tunnel);
+							
+				memcpy(iph_tunnel,iph,sizeof(hdr_ip));
+				memcpy(mh_tunnel,mh,sizeof(hdr_mysip));
+						
+				hdrc_tunnel->size() = hdrc->size();
 				
 				//	change change mn contact to mr contact
-				mh->contact = bu->con();
-				mh->cip = bu->con();
+				mh_tunnel->contact = bu->con();
+				mh_tunnel->cip = bu->con();
 				
 //				mh->contact_id=bu->url_id();
 				
@@ -369,21 +415,25 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 							
 				//	chage daddr to mn ha
 				//	we use header tunnel in mip
-				iph->daddr() = mh->requestURL;
+				iph_tunnel->daddr() = mh->requestURL;
 //				iph->saddr() = bu->con();
 				
-				debug("bu->con() %s ip->daddr() %s \n",
-						Address::instance().print_nodeaddr(bu->con()),
-						Address::instance().print_nodeaddr(iph->daddr()));
+//				debug("bu->con() %s ip->daddr() %s \n",
+//						Address::instance().print_nodeaddr(bu->con()),
+//						Address::instance().print_nodeaddr(iph->daddr()));
 				
 				bu = get_mr_ha_entry_by_caddr(bu->con());
 				
 				assert(bu!=NULL);
 				
-				Packet* p_tunnel = p->copy();
-
+//				Packet* p_tunnel = p->copy();
+				debug("MR interface %s \n",
+						Address::instance().print_nodeaddr(bu->eface()->get_iface()->address()));
+				
 				bu->eface()->send(p_tunnel,0);
 				
+				debug("At %f UdpmysipAgent MR in %s send packet to %s\n", 
+									NOW, MYNUM, Address::instance().print_nodeaddr(iph_tunnel->daddr()));
 			}
 				
 //			SIPEntry* bu = get_entry_by_url_id(mh->From_id);
@@ -408,8 +458,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 //			Packet* p_tunnel = p->copy();
 //			get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 			
-			debug("At %f UdpmysipAgent MR in %s send packet to %s\n", 
-								NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+
 			
 			//send_temp_move_pkt(p);
 			//send_temp_move_nemo(p);
@@ -427,8 +476,13 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 					cn->insert_entry(&siplist_head_);
 					dump();
 				}
-
-			
+				
+				if(cn->type()==SIP_CN)
+				{
+					cn->con() = mh->contact;
+					dump();
+				}
+				
 			SIPEntry* bu = get_mn_entry_by_url_id(mh->From_id);
 			if(!bu)
 			{
@@ -464,6 +518,26 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			}
 			
 			debug("At %f UdpmysipAgent MR in %s send tempory move or 200ok packet to %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			
+			ih->prio_ = 14;
+		}
+		else if(mh->method==9)
+		{
+			registration(p,SIP_CN);
+			dump();
+			
+			SIPEntry* bu = get_mn_entry_by_url_id(mh->To_id);
+			
+			int prefix = bu->add() & 0xFFFFF800;
+			
+			iph->daddr() = bu->add();
+
+
+			Packet* p_tunnel = p->copy();
+			get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
+			
+			debug("At %f UdpmysipAgent MR in %s recv rehoming packet send packet to %s\n", 
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 			
 			ih->prio_ = 14;
@@ -546,7 +620,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==1)
 		{
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv 200ok packet\n", NOW, MYNUM);
 		}
 		if(mh->method==7)
@@ -559,6 +633,13 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			hdrc->size()-=20;
 			send_invite_to_temp_move_pkt(p);
 			ih->prio_ = 14;
+		}
+		if(mh->method==9)
+		{
+			
+			debug("At %f UdpmysipAgent MN in %s recv rehoming packet\n", NOW, MYNUM);
+			hdrc->size()-=20;
+			ih->prio_ = 15;
 		}
 	} else if(node_type_ == SIP_CN){
 		if(mh->method==0)
@@ -734,6 +815,9 @@ void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
 	{
 		debug("MR node reg \n");
 		
+		debug("send_reg daddr %s dport %d saddr %s sport %d\n",
+				Address::instance().print_nodeaddr(iph->daddr()),iph->dport(),
+				Address::instance().print_nodeaddr(iph->saddr()),iph->sport());
 		
 		Tcl& tcl = Tcl::instance();
 		tcl.evalf("%s entry", iface->name());
@@ -976,6 +1060,7 @@ void UdpmysipAgent::send_temp_move_pkt(Packet* p)
 {
 	hdr_ip *iph= HDR_IP(p);
 	hdr_mysip *mh= HDR_MYSIP(p);
+	hdr_cmn *hdrc = HDR_CMN(p);
 	
 	SIPEntry* bu = get_entry_by_url_id(mh->requestURL_id);
 	if(!bu)
@@ -1004,7 +1089,17 @@ void UdpmysipAgent::send_temp_move_pkt(Packet* p)
 	}
 	debug("iph->daddr() %s \n",Address::instance().print_nodeaddr(iph->daddr()));
 	show_sipheader(p);
-	Packet* p_temp_move = p->copy();
+//	Packet* p_temp_move = p->copy();
+	Packet* p_temp_move = allocpkt();
+	hdr_ip *iph_tunnel = HDR_IP(p_temp_move);
+	hdr_mysip *mh_tunnel = HDR_MYSIP(p_temp_move);
+	hdr_cmn *hdrc_tunnel = HDR_CMN(p_temp_move);
+
+	memcpy(iph_tunnel,iph,sizeof(hdr_ip));
+	memcpy(mh_tunnel,mh,sizeof(hdr_mysip));
+
+	hdrc_tunnel->size() = hdrc->size();
+					
 	send(p_temp_move,0);
 	debug("At %f UdpmysipAgent MR_HA or MN_HA in %s send temp_move packet\n", NOW, MYNUM);
 }
@@ -1137,21 +1232,20 @@ void UdpmysipAgent::re_homing(Node *iface)
 		mh->nbytes=200;
 		mh->method=9;
 
-		mh->requestURL = bu_break->add();
-		mh->requestURL_id = bu_break->add_id();
-		mh->From_id = bu_break->url_id();
-		mh->From = bu_break->url();
+		mh->requestURL = bu_cn->con();
+		mh->requestURL_id = bu_cn->con_id();
+		mh->From_id = bu_mn->url_id();
+		mh->From = bu_mn->url();
 		mh->To_id = bu_cn->url_id();
 		mh->To = bu_cn->url();
-//		mh->contact_id = bu_break->url_id();
-		mh->contact_id = bu_cn->url_id();
-		mh->contact = bu_new->con();
+		mh->contact_id = bu_mn->con_id();
+		mh->contact = bu_mn->con();
 		mh->cport = 3;
 
-		show_sipheader(p);
+		show_sipheader(p_cn);
 
-		iph->saddr()=bu_new->con();
-		iph->daddr()=bu_cn->url();
+		iph->saddr()=bu_mn->con();
+		iph->daddr()=bu_cn->con();
 		iph->dport()=port();
 
 		hdrc->size()=200;

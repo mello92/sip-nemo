@@ -439,6 +439,21 @@ void MIPV6Agent::send_rs(Mac *mac) {
 	} else {
 		debug("WARNING: At %f MIPv6 Agent in %s does not have ND to send RS\n", 
 		NOW, MYNUM);
+		
+		//----------------sem start------------------//
+		Tcl& tcl = Tcl::instance();
+		tcl.evalf("%s get-node",mac->name());
+		Node *node = (Node*)TclObject::lookup(tcl.result());
+		
+		if(udpmysip_!=0 )
+		{
+			printf("sip enable\n");
+			udpmysip_->send_reg_msg(0, node);
+		}
+		else	
+			send_bu_msg(0, node);
+		//----------------sem end------------------//
+		
 	}
 
 }
@@ -1510,7 +1525,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			iph->daddr()=prefix;
 			iph->dport()=port();
 			
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			
 			Packet* p_tunnel = p->copy();
 			bu->eface()->send(p_tunnel,0);
@@ -2201,6 +2216,18 @@ BUEntry* MIPV6Agent::get_mr_ha_entry_without_iface(Node *iface)
 	return NULL;
 }
 
+vector <BUEntry*> MIPV6Agent::get_mr_ha_entry_dead()
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	vector <BUEntry *> res;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_HA && bu->eface()!=NULL && bu->eface()->get_iface()->address()!=bu->caddr()) {
+			res.push_back(bu);
+		}
+	}
+	return res;
+}
+
 void MIPV6Agent::re_homing(Node *iface)
 {
 	BUEntry* bu_break = get_mr_ha_entry_by_iface(iface);
@@ -2214,6 +2241,11 @@ void MIPV6Agent::re_homing(Node *iface)
 	//	set mn coa to new interface
 	bu_mn->caddr()=bu_new->caddr();
 	
+	//	set break interface caddr to new interface caddr
+//	bu_break->caddr()=bu_new->caddr();
+	
+	dump();
+	
 	//	set bu to break mr_ha
 	Packet *p = allocpkt();
 	hdr_ip *iph = HDR_IP(p);
@@ -2222,8 +2254,7 @@ void MIPV6Agent::re_homing(Node *iface)
 	
 	debug("mipv6 exp_ %d\n ",exp_);
 	
-	if(exp_==4)
-	{
+	if(exp_==4) {
 		
 		nh->coa()=bu_new->haddr();
 		nh->haddr()=bu_break->haddr();
