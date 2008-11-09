@@ -371,21 +371,23 @@ void mysipApp::account_recv_pkt(const hdr_mysip *sip_buf)
   p_accnt.recv_pkts ++;
   p_accnt.lost_pkts = (sip_buf->seq - p_accnt.last_seq - 1);
   p_accnt.total_lost_pkts += p_accnt.lost_pkts;
-  FILE *op;
+  FILE *op,*op2;
   op = fopen(filename,"a");
+  op2 = fopen("total","a");
   // seq sendtime arrivaltime rtt lost 
   if(p_accnt.lost_pkts > 2 && handoffnum < 30)
   {
-      //fprintf(op,"%d %lf %lf %lf %d +\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
+      fprintf(op2,"%d %lf %lf %lf %d +\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
 	  fprintf(op,"%d %lf %lf %d +\n", sip_buf->seq, local_time-first_seq_time, p_accnt.rtt, p_accnt.lost_pkts );
 	  handofftime[handoffnum++] = local_time - p_accnt.last_arrival_time;
       //invite_timer_.resched(0.05);
   }
   else
   {
-      //fprintf(op,"%d %lf %lf %lf %d\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
+      fprintf(op2,"%d %lf %lf %lf %d\n",sip_buf->seq,sip_buf->time,local_time,p_accnt.rtt, p_accnt.lost_pkts);
 	  	fprintf(op,"%d %lf %lf %d\n", sip_buf->seq, local_time-first_seq_time, p_accnt.rtt, p_accnt.lost_pkts );
   }
+  fclose(op2);
   fclose(op);
 
   p_accnt.last_seq = sip_buf->seq;
@@ -396,6 +398,7 @@ void mysipApp::dump_handoff()
 {
   FILE *op;
   op = fopen(filename_sec,"a");
+  fprintf(op,"%lf\n",first_seq_time);
   for(int i=0; i < handoffnum; i++)
       fprintf(op,"%lf\n",handofftime[i]);
   fprintf(op,"%d\n",p_accnt.total_lost_pkts);
@@ -462,6 +465,8 @@ void mysipApp::init_recv_pkt_accounting()
    op = fopen(filename,"w");
    fclose(op);
    op = fopen(filename_sec,"w");
+   fclose(op);
+   op = fopen("total","w");
    fclose(op);
    p_accnt.last_seq = -1;
    p_accnt.last_scale = 0; 

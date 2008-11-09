@@ -442,6 +442,8 @@ class MIPV6Agent : public IFMNGMTAgent {
 		BUEntry* get_mr_ha_entry_by_iface(Node *iface);
 		BUEntry* get_mr_ha_entry_without_iface(Node *iface);
 		
+		vector <BUEntry*> get_mr_ha_entry_dead();
+		
 		BUEntry* get_entry_by_caddr(int caddr);
 		
 		int compute_new_address (int prefix, Node *interface);
