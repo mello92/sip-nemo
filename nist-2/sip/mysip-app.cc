@@ -140,6 +140,13 @@ int mysipApp::command(int argc, const char*const* argv)
   }
   if(argc == 5) 
   {	
+	  if (strcmp(argv[1], "log_file") == 0 )
+	  {
+		  strcpy(filename,argv[2]);
+		  strcpy(filename_sec,argv[3]);
+		  strcpy(filename_all,argv[4]);
+		  return(TCL_OK);
+	  }
 	if (strcmp(argv[1], "add_URL_record") == 0 )
 	{
 	    int xurl_id = atoi(argv[2]);
@@ -373,7 +380,12 @@ void mysipApp::account_recv_pkt(const hdr_mysip *sip_buf)
   p_accnt.total_lost_pkts += p_accnt.lost_pkts;
   FILE *op,*op2;
   op = fopen(filename,"a");
-  op2 = fopen("total","a");
+  
+  if(filename_all=="")
+	  op2 = fopen("total","a");
+  else
+	  op2 = fopen(filename_all,"a");
+  
   // seq sendtime arrivaltime rtt lost 
   if(p_accnt.lost_pkts > 2 && handoffnum < 30)
   {
@@ -465,6 +477,8 @@ void mysipApp::init_recv_pkt_accounting()
    op = fopen(filename,"w");
    fclose(op);
    op = fopen(filename_sec,"w");
+   fclose(op);
+   op = fopen(filename_all,"w");
    fclose(op);
    op = fopen("total","w");
    fclose(op);

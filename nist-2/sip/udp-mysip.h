@@ -205,6 +205,9 @@ protected:
 	MIPV6Agent *mipv6_;
 	SipNodeType node_type_;
 //	mysipApp *mysipapp_;
+	
+	int select_;
+	
 private:
 	//----------------sem start------------------//
 	struct sip_entry siplist_head_;
@@ -222,6 +225,10 @@ private:
 	SIPEntry* get_mr_ha_entry_by_caddr(int caddr);
 	SIPEntry* get_mn_entry_by_url_id(int url_id);
 	SIPEntry* get_cn_entry_by_url_id(int url_id);
+	
+	SIPEntry* get_mr_ha_entry_random();
+	vector <SIPEntry*> rehome_mn_coa_entry_random(int caddr);
+	vector <SIPEntry*> renew_mn_coa_entry_random(int caddr);
 	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);
