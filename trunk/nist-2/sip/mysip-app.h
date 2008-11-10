@@ -187,6 +187,7 @@ class mysipApp : public Application {
 	struct hdr_mysip* last_siph;
 	char filename[30];
 	char filename_sec[30];
+	char filename_all[30];
 	double handofftime[30];
 	double error_recover_time[30];
 	int handoffnum;
