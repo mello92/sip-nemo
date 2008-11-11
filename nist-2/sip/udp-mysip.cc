@@ -520,7 +520,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				
 				iph->daddr() = bu->add();
 
-
+				
 				Packet* p_tunnel = p->copy();
 				get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 			}
@@ -1074,7 +1074,7 @@ SIPEntry* UdpmysipAgent::get_cn_entry_by_url_id(int url_id)
 SIPEntry* UdpmysipAgent::get_mr_ha_entry_random()
 {
 	SIPEntry *bu =  siplist_head_.lh_first;
-	srand(time(NULL));
+	Random::seed_heuristically();
 	
 	vector <SIPEntry *> mr_ha;
 	for(;bu;bu=bu->next_entry()) {
@@ -1082,13 +1082,13 @@ SIPEntry* UdpmysipAgent::get_mr_ha_entry_random()
 			mr_ha.push_back(bu);
 		}
 	}
-	return mr_ha[rand()%mr_ha.size()];
+	return mr_ha[Random::random()%mr_ha.size()];
 }
 
 vector <SIPEntry*> UdpmysipAgent::rehome_mn_coa_entry_random(int caddr)
 {
 	SIPEntry *bu =  siplist_head_.lh_first;
-	srand(time(NULL));
+	Random::seed_heuristically();
 	
 	vector <SIPEntry *> mr_ha;
 	for(;bu;bu=bu->next_entry()) {
@@ -1105,7 +1105,7 @@ vector <SIPEntry*> UdpmysipAgent::rehome_mn_coa_entry_random(int caddr)
 			if(mr_ha.empty())
 				bu->con()=-1;
 			else
-				bu->con()=mr_ha[rand()%mr_ha.size()]->con();
+				bu->con()=mr_ha[Random::random()%mr_ha.size()]->con();
 			mn.push_back(bu);
 		}
 	}
@@ -1115,7 +1115,7 @@ vector <SIPEntry*> UdpmysipAgent::rehome_mn_coa_entry_random(int caddr)
 vector <SIPEntry*> UdpmysipAgent::renew_mn_coa_entry_random(int caddr)
 {
 	SIPEntry *bu =  siplist_head_.lh_first;
-	srand(time(NULL));
+	Random::seed_heuristically();
 	
 	vector <SIPEntry *> mn;
 	for(;bu;bu=bu->next_entry()) {
@@ -1126,9 +1126,9 @@ vector <SIPEntry*> UdpmysipAgent::renew_mn_coa_entry_random(int caddr)
 	
 	if(!mn.empty())
 	{
-		int j=rand()%mn.size();
+		int j=Random::random()%mn.size();
 		for(int i=0;i<j;i++)
-			mn[rand()%mn.size()]->con() = caddr;
+			mn[Random::random()%mn.size()]->con() = caddr;
 	}
 	
 	return mn;
