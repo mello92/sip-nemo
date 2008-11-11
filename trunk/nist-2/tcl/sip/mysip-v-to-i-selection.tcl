@@ -125,8 +125,8 @@ $ns trace-all $f
 
 # set up for hierarchical routing (needed for routing over a basestation)
 $ns node-config -addressType hierarchical
-AddrParams set domain_num_  23                      ;# domain number
-AddrParams set cluster_num_ {1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1}   ;# cluster number for each domain 
+AddrParams set domain_num_  27                      ;# domain number
+AddrParams set cluster_num_ {1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1}   ;# cluster number for each domain 
 																													        #10                                                #20
 # 1st cluster: UMTS: 2 network entities + nb of mobile nodes
 # 2nd cluster: CN
@@ -139,7 +139,7 @@ lappend tmp 1                                      ;# router 1
 lappend tmp 2                                      ;# bs_eface1_mr0 eface1_mr0
 lappend tmp 1                                      ;# mr0
 lappend tmp 1                                      ;# ha
-lappend tmp 2                                      ;# iface0_mr0 eface_mn0
+lappend tmp 6                                      ;# iface0_mr0 eface_mn0 eface_mn2~eface_mn5
 lappend tmp 1                                      ;# mn0
 lappend tmp 1                                      ;# mr0_ha1
 lappend tmp 1                                      ;# mn0_ha2
@@ -159,6 +159,11 @@ lappend tmp 1                                      ;# cn1
 lappend tmp 1                                      ;# cn2
 lappend tmp 1                                      ;# cn3
 lappend tmp 1                                      ;# cn4
+
+lappend tmp 1                                      ;# mn2
+lappend tmp 1                                      ;# mn3
+lappend tmp 1                                      ;# mn4
+lappend tmp 1                                      ;# mn5
 
 AddrParams set nodes_num_ $tmp
 
@@ -258,6 +263,13 @@ set mn0 [$ns node 7.0.0]
 set mr1 [$ns node 17.0.0] 
 set mn1 [$ns node 16.0.0]
 
+set mn2 [$ns node 23.0.0]
+set mn3 [$ns node 24.0.0]
+set mn4 [$ns node 25.0.0]
+set mn5 [$ns node 26.0.0]
+
+
+
 $ns node-config  -multiIf OFF                           ;#reset attribute
 if {$quiet == 0} {
 	puts "mr0(s) has/have been created"
@@ -296,7 +308,7 @@ $topo load_flatgrid $opt(x) $opt(y)
 #puts "Topology created"
 
 # create God
-create-god 34				                ;# give the number of nodes 
+create-god 43				                ;# give the number of nodes 
 
 
 # configure Access Points
@@ -356,6 +368,28 @@ $bs_eface2_mr0_Mac bss_id $AP_ADDR_0_2
 $bs_eface2_mr0_Mac enable-beacon
 $bs_eface2_mr0_Mac set-channel 3
 
+
+set iface0_mr0 [$ns node 6.0.0]     ;# node id is 8. 
+$iface0_mr0 random-motion 0		;# disable random motion
+#$iface0_mr0 base-station [AddrParams addr2id [$nemo node-addr]] ;#attach mn to basestation
+$iface0_mr0 set X_ 200
+$iface0_mr0 set Y_ 200
+$iface0_mr0 set Z_ 0.0
+
+if {$quiet == 0} {
+	puts "iface0_mr0: tcl=$iface0_mr0; id=[$iface0_mr0 id]; addr=[$iface0_mr0 node-addr]"
+}
+#[$iface0_mr0 getMac 0] set-channel 2
+set iface0_mr0_Mac [$iface0_mr0 getMac 0]
+set AP_ADDR_1 [$iface0_mr0_Mac id]
+if {$quiet == 0} {
+	puts "bss_id for iface0_mr0 =$AP_ADDR_1"
+}
+$iface0_mr0_Mac bss_id $AP_ADDR_1
+$iface0_mr0_Mac enable-beacon
+$iface0_mr0_Mac set-channel 2
+
+
 #######################
 #		configure mr 1
 # configure Base station 802.11
@@ -397,6 +431,28 @@ $bs_eface2_mr1_Mac enable-beacon
 $bs_eface2_mr1_Mac set-channel 6
 
 
+set iface0_mr1 [$ns node 15.0.0]     ;# node id is 8. 
+$iface0_mr1 random-motion 0		;# disable random motion
+#$iface0_mr1 base-station [AddrParams addr2id [$nemo node-addr]] ;#attach mn to basestation
+$iface0_mr1 set X_ 200
+$iface0_mr1 set Y_ 200
+$iface0_mr1 set Z_ 0.0
+
+if {$quiet == 0} {
+	puts "iface0_mr1: tcl=$iface0_mr1; id=[$iface0_mr1 id]; addr=[$iface0_mr1 node-addr]"
+}
+#[$iface0_mr0 getMac 0] set-channel 2
+set iface0_mr1_Mac [$iface0_mr1 getMac 0]
+set AP_ADDR_1 [$iface0_mr1_Mac id]
+if {$quiet == 0} {
+	puts "bss_id for iface0_mr0 =$AP_ADDR_1"
+}
+$iface0_mr1_Mac bss_id $AP_ADDR_1
+$iface0_mr1_Mac enable-beacon
+$iface0_mr1_Mac set-channel 5
+
+
+
 # creation of the wireless interface 802.11
 $ns node-config -wiredRouting OFF \
 				-macTrace ON 		
@@ -411,7 +467,7 @@ $eface1_mr0 set Y_ $Y_src
 $eface1_mr0 set Z_ 0.0
 
 if {$quiet == 0} {
-	puts "eface1_mr0 = $eface1_mr0"
+	puts "eface1_mr0: tcl=$eface1_mr0; id=[$eface1_mr0 id]; addr=[$eface1_mr0 node-addr]"
 }
 [$eface1_mr0 getMac 0] set-channel 1
 
@@ -424,30 +480,12 @@ $eface2_mr0 set Y_ $Y_src
 $eface2_mr0 set Z_ 0.0
 
 if {$quiet == 0} {
-	puts "eface2_mr0 = $eface2_mr0"
+	puts "eface2_mr0: tcl=$eface2_mr0; id=[$eface2_mr0 id]; addr=[$eface2_mr0 node-addr]"
 }
 [$eface2_mr0 getMac 0] set-channel 3
 
 
-set iface0_mr0 [$ns node 6.0.0]     ;# node id is 8. 
-$iface0_mr0 random-motion 0		;# disable random motion
-#$iface0_mr0 base-station [AddrParams addr2id [$nemo node-addr]] ;#attach mn to basestation
-$iface0_mr0 set X_ 200
-$iface0_mr0 set Y_ 200
-$iface0_mr0 set Z_ 0.0
 
-if {$quiet == 0} {
-	puts "iface0_mr0 = $iface0_mr0"
-}
-#[$iface0_mr0 getMac 0] set-channel 2
-set iface0_mr0_Mac [$iface0_mr0 getMac 0]
-set AP_ADDR_1 [$iface0_mr0_Mac id]
-if {$quiet == 0} {
-	puts "bss_id for iface0_mr0 =$AP_ADDR_1"
-}
-$iface0_mr0_Mac bss_id $AP_ADDR_1
-$iface0_mr0_Mac enable-beacon
-$iface0_mr0_Mac set-channel 2
 
 set eface0_mn0 [$ns node 6.0.1]     ;# node id is 8. 
 $eface0_mn0 random-motion 0		;# disable random motion
@@ -457,9 +495,60 @@ $eface0_mn0 set Y_ 170
 $eface0_mn0 set Z_ 0.0
 
 if {$quiet == 0} {
-	puts "eface0_mn0 = $eface0_mn0"
+	puts "eface0_mn0: tcl=$eface0_mn0; id=[$eface0_mn0 id]; addr=[$eface0_mn0 node-addr]"
 }
 [$eface0_mn0 getMac 0] set-channel 2
+
+
+set eface0_mn2 [$ns node 6.0.2]     ;# node id is 8. 
+$eface0_mn2 random-motion 0		;# disable random motion
+$eface0_mn2 base-station [AddrParams addr2id [$iface0_mr0 node-addr]] ;#attach mn to basestation
+$eface0_mn2 set X_ 200
+$eface0_mn2 set Y_ 170
+$eface0_mn2 set Z_ 0.0
+
+if {$quiet == 0} {
+	puts "eface0_mn2: tcl=$eface0_mn2; id=[$eface0_mn2 id]; addr=[$eface0_mn2 node-addr]"
+}
+[$eface0_mn2 getMac 0] set-channel 2
+
+
+set eface0_mn3 [$ns node 6.0.3]     ;# node id is 8. 
+$eface0_mn3 random-motion 0		;# disable random motion
+$eface0_mn3 base-station [AddrParams addr2id [$iface0_mr0 node-addr]] ;#attach mn to basestation
+$eface0_mn3 set X_ 200
+$eface0_mn3 set Y_ 170
+$eface0_mn3 set Z_ 0.0
+
+if {$quiet == 0} {
+	puts "eface0_mn3: tcl=$eface0_mn3; id=[$eface0_mn3 id]; addr=[$eface0_mn3 node-addr]"
+}
+[$eface0_mn3 getMac 0] set-channel 2
+
+set eface0_mn4 [$ns node 6.0.4]     ;# node id is 8. 
+$eface0_mn4 random-motion 0		;# disable random motion
+$eface0_mn4 base-station [AddrParams addr2id [$iface0_mr0 node-addr]] ;#attach mn to basestation
+$eface0_mn4 set X_ 200
+$eface0_mn4 set Y_ 170
+$eface0_mn4 set Z_ 0.0
+
+if {$quiet == 0} {
+	puts "eface0_mn4: tcl=$eface0_mn4; id=[$eface0_mn4 id]; addr=[$eface0_mn4 node-addr]"
+}
+[$eface0_mn4 getMac 0] set-channel 2
+
+
+set eface0_mn5 [$ns node 6.0.5]     ;# node id is 8. 
+$eface0_mn5 random-motion 0		;# disable random motion
+$eface0_mn5 base-station [AddrParams addr2id [$iface0_mr0 node-addr]] ;#attach mn to basestation
+$eface0_mn5 set X_ 200
+$eface0_mn5 set Y_ 170
+$eface0_mn5 set Z_ 0.0
+
+if {$quiet == 0} {
+	puts "eface0_mn5: tcl=$eface0_mn5; id=[$eface0_mn5 id]; addr=[$eface0_mn5 node-addr]"
+}
+[$eface0_mn5 getMac 0] set-channel 2
 
 
 #######################
@@ -472,7 +561,7 @@ $eface1_mr1 set Y_ $Y_src
 $eface1_mr1 set Z_ 0.0
 
 if {$quiet == 0} {
-	puts "eface1_mr1 = $eface1_mr1"
+	puts "eface1_mr1: tcl=$eface1_mr1; id=[$eface1_mr1 id]; addr=[$eface1_mr1 node-addr]"
 }
 [$eface1_mr1 getMac 0] set-channel 4
 
@@ -485,30 +574,11 @@ $eface2_mr1 set Y_ $Y_src
 $eface2_mr1 set Z_ 0.0
 
 if {$quiet == 0} {
-	puts "eface2_mr1 = $eface2_mr1"
+	puts "eface2_mr1: tcl=$eface2_mr1; id=[$eface2_mr1 id]; addr=[$eface2_mr1 node-addr]"
 }
 [$eface2_mr1 getMac 0] set-channel 6
 
 
-set iface0_mr1 [$ns node 15.0.0]     ;# node id is 8. 
-$iface0_mr1 random-motion 0		;# disable random motion
-#$iface0_mr1 base-station [AddrParams addr2id [$nemo node-addr]] ;#attach mn to basestation
-$iface0_mr1 set X_ 200
-$iface0_mr1 set Y_ 200
-$iface0_mr1 set Z_ 0.0
-
-if {$quiet == 0} {
-	puts "iface0_mr1 = $iface0_mr1"
-}
-#[$iface0_mr0 getMac 0] set-channel 2
-set iface0_mr1_Mac [$iface0_mr1 getMac 0]
-set AP_ADDR_1 [$iface0_mr1_Mac id]
-if {$quiet == 0} {
-	puts "bss_id for iface0_mr0 =$AP_ADDR_1"
-}
-$iface0_mr1_Mac bss_id $AP_ADDR_1
-$iface0_mr1_Mac enable-beacon
-$iface0_mr1_Mac set-channel 5
 
 set eface0_mn1 [$ns node 15.0.1]     ;# node id is 8. 
 $eface0_mn1 random-motion 0		;# disable random motion
@@ -518,7 +588,7 @@ $eface0_mn1 set Y_ 170
 $eface0_mn1 set Z_ 0.0
 
 if {$quiet == 0} {
-	puts "eface0_mn1 = $eface0_mn1"
+	puts "eface0_mn1: tcl=$eface0_mn1; id=[$eface0_mn1 id]; addr=[$eface0_mn1 node-addr]"
 }
 [$eface0_mn1 getMac 0] set-channel 5
 
@@ -606,13 +676,20 @@ $mr0 add-interface-node $eface1_mr0
 $mr0 add-interface-node $eface2_mr0
 $mr0 add-interface-node $eface3_mr0
 $mr0 add-interface-node $iface0_mr0
+
 $mn0 add-interface-node $eface0_mn0
+$mn2 add-interface-node $eface0_mn2
+$mn3 add-interface-node $eface0_mn3
+$mn4 add-interface-node $eface0_mn4
+$mn5 add-interface-node $eface0_mn5
+
 #######################
 #		configure mr 1
 #$mr1 add-interface-node $eface0_mr1
 $mr1 add-interface-node $eface1_mr1
 $mr1 add-interface-node $eface2_mr1
 $mr1 add-interface-node $iface0_mr1
+
 $mn1 add-interface-node $eface0_mn1
 
 #
@@ -737,6 +814,13 @@ $nd_iface0_mr0 set-router TRUE
 $nd_iface0_mr0 router-lifetime 1800
 $ns at 1 "$nd_iface0_mr0 start-ra"
 
+set mipv6_iface0_mr0 [$iface0_mr0 install-default-ifmanager]
+set mih_iface0_mr0 [$iface0_mr0 install-mih]
+$mipv6_iface0_mr0 connect-mih $mih_iface0_mr0
+set tmp3 [$iface0_mr0 set mac_(0)] ;#in 802.11 one interface is created
+$tmp3 mih $mih_iface0_mr0
+$mih_iface0_mr0 add-mac $tmp3
+
 #######################
 #		configure mr 1
 set nd_eface1_mr1 [$eface1_mr1 install-nd]
@@ -752,6 +836,11 @@ $ns at 1 "$nd_iface0_mr1 start-ra"
 #		configure mr 0
 set nd_eface0_mn0 [$eface0_mn0 install-nd]
 
+set nd_eface0_mn2 [$eface0_mn2 install-nd]
+set nd_eface0_mn3 [$eface0_mn3 install-nd]
+set nd_eface0_mn4 [$eface0_mn4 install-nd]
+set nd_eface0_mn5 [$eface0_mn5 install-nd]
+
 #######################
 #		configure mr 1
 set nd_eface0_mn1 [$eface0_mn1 install-nd]
@@ -766,14 +855,24 @@ set nemo_eface1_mr0 [$mr0 install-nemo 201]
 set nemo_eface2_mr0 [$mr0 install-nemo 202]
 set nemo_eface3_mr0 [$mr0 install-nemo 203]
 set nemo_iface0_mr0 [$mr0 install-nemo 204]
+
 set nemo_eface0_mn0 [$mn0 install-nemo 200]
+set nemo_eface0_mn2 [$mn2 install-nemo 200]
+set nemo_eface0_mn3 [$mn3 install-nemo 200]
+set nemo_eface0_mn4 [$mn4 install-nemo 200]
+set nemo_eface0_mn5 [$mn5 install-nemo 200]
 
 $nemo_eface0_mr0 connect-interface $eface0_mr0
 $nemo_eface1_mr0 connect-interface $eface1_mr0
 $nemo_eface2_mr0 connect-interface $eface2_mr0
 $nemo_eface3_mr0 connect-interface $eface3_mr0
 $nemo_iface0_mr0 connect-interface $iface0_mr0
+
 $nemo_eface0_mn0 connect-interface $eface0_mn0
+$nemo_eface0_mn2 connect-interface $eface0_mn2
+$nemo_eface0_mn3 connect-interface $eface0_mn3
+$nemo_eface0_mn4 connect-interface $eface0_mn4
+$nemo_eface0_mn5 connect-interface $eface0_mn5
 
 #######################
 #		configure mr 1
@@ -800,6 +899,27 @@ set mipv6_mn0 [$mn0 install-default-ifmanager]
 $nd_eface0_mn0 set-ifmanager $mipv6_mn0
 $mipv6_mn0 set-node-type $node_type(MN)
 $mipv6_mn0 set-mn 5.0.0 5.0.1 $nemo_eface0_mn0
+
+set mipv6_mn2 [$mn2 install-default-ifmanager]
+$nd_eface0_mn2 set-ifmanager $mipv6_mn2
+$mipv6_mn2 set-node-type $node_type(MN)
+$mipv6_mn2 set-mn 5.0.0 5.0.8 $nemo_eface0_mn2
+
+set mipv6_mn3 [$mn3 install-default-ifmanager]
+$nd_eface0_mn3 set-ifmanager $mipv6_mn3
+$mipv6_mn3 set-node-type $node_type(MN)
+$mipv6_mn3 set-mn 5.0.0 5.0.9 $nemo_eface0_mn3
+
+set mipv6_mn4 [$mn4 install-default-ifmanager]
+$nd_eface0_mn4 set-ifmanager $mipv6_mn4
+$mipv6_mn4 set-node-type $node_type(MN)
+$mipv6_mn4 set-mn 5.0.0 5.0.10 $nemo_eface0_mn4
+
+set mipv6_mn5 [$mn5 install-default-ifmanager]
+$nd_eface0_mn5 set-ifmanager $mipv6_mn5
+$mipv6_mn5 set-node-type $node_type(MN)
+$mipv6_mn5 set-mn 5.0.0 5.0.11 $nemo_eface0_mn5
+
 
 #######################
 #		configure mr 1
@@ -1022,7 +1142,13 @@ set udp_s1 [new Agent/UDP/Udpmysip]
 set udp_s2 [new Agent/UDP/Udpmysip]
 set udp_s3 [new Agent/UDP/Udpmysip]
 set udp_s4 [new Agent/UDP/Udpmysip]
-set udp_r [new Agent/UDP/Udpmysip]
+
+set udp_r0 [new Agent/UDP/Udpmysip]
+set udp_r2 [new Agent/UDP/Udpmysip]
+set udp_r3 [new Agent/UDP/Udpmysip]
+set udp_r4 [new Agent/UDP/Udpmysip]
+set udp_r5 [new Agent/UDP/Udpmysip]
+
 set udp_server [new Agent/UDP/Udpmysip]
 
 #
@@ -1061,13 +1187,23 @@ $udp_s1 set-node-type $node_type_sip(SIP_CN)
 $udp_s2 set-node-type $node_type_sip(SIP_CN)
 $udp_s3 set-node-type $node_type_sip(SIP_CN)
 $udp_s4 set-node-type $node_type_sip(SIP_CN)
-$udp_r set-node-type $node_type_sip(SIP_MN)
+
+$udp_r0 set-node-type $node_type_sip(SIP_MN)
+$udp_r2 set-node-type $node_type_sip(SIP_MN)
+$udp_r3 set-node-type $node_type_sip(SIP_MN)
+$udp_r4 set-node-type $node_type_sip(SIP_MN)
+$udp_r5 set-node-type $node_type_sip(SIP_MN)
+
 $udp_server set-node-type $node_type_sip(SIP_MN_HA)
 
 $udp_mn1 set-node-type $node_type_sip(SIP_MN)
 
 
-$udp_r set-sip-mn 88 5.0.0 8888 5.0.0 $nemo_eface0_mn0
+$udp_r0 set-sip-mn 88 5.0.0 8888 5.0.0 $nemo_eface0_mn0
+$udp_r2 set-sip-mn 88 5.0.0 7000 5.0.0 $nemo_eface0_mn2
+$udp_r3 set-sip-mn 88 5.0.0 7001 5.0.0 $nemo_eface0_mn3
+$udp_r4 set-sip-mn 88 5.0.0 7002 5.0.0 $nemo_eface0_mn4
+$udp_r5 set-sip-mn 88 5.0.0 7003 5.0.0 $nemo_eface0_mn5
 
 $udp_s0 set-sip-cn 88 5.0.0 1000 5.0.0
 $udp_s1 set-sip-cn 88 5.0.0 1001 5.0.0
@@ -1111,7 +1247,12 @@ $mipv6_cn2 set-udpmysip $udp_s2
 $mipv6_cn3 set-udpmysip $udp_s3
 $mipv6_cn4 set-udpmysip $udp_s4
 
-$mipv6_mn0 set-udpmysip $udp_r
+$mipv6_mn0 set-udpmysip $udp_r0
+$mipv6_mn2 set-udpmysip $udp_r2
+$mipv6_mn3 set-udpmysip $udp_r3
+$mipv6_mn4 set-udpmysip $udp_r4
+$mipv6_mn5 set-udpmysip $udp_r5
+
 $handover_mr0 set-udpmysip $udp_mr0
 $handover_mr1 set-udpmysip $udp_mr1
 
@@ -1128,9 +1269,14 @@ $mr0 attach-agent $udp_mr0	$eface0_mr0 3
 
 $mr1 attach $udp_mr1 3
 
-$mn0 attach-agent $udp_r $eface0_mn0 3
+$mn0 attach-agent $udp_r0 $eface0_mn0 3
 #$handover_mr0 add-flow $udp_r $udp_s $eface0_mr0 2 ;#2000.
 $mn1 attach-agent $udp_mn1 $eface0_mn1 3
+
+$mn2 attach-agent $udp_r2 $eface0_mn2 3
+$mn3 attach-agent $udp_r3 $eface0_mn3 3
+$mn4 attach-agent $udp_r4 $eface0_mn4 3
+$mn5 attach-agent $udp_r5 $eface0_mn5 3
 
 #$mn1 attach-agent $udp_r $eface0_mn1 3
 #$handover_mr1 add-flow $udp_r $udp_s $eface0_mr1 2 ;#2000.
@@ -1142,7 +1288,12 @@ $udp_s2 set packetSize_ 1000
 $udp_s3 set packetSize_ 1000
 $udp_s4 set packetSize_ 1000
 
-$udp_r set packetSize_ 1000
+$udp_r0 set packetSize_ 1000
+$udp_r2 set packetSize_ 1000
+$udp_r3 set packetSize_ 1000
+$udp_r4 set packetSize_ 1000
+$udp_r5 set packetSize_ 1000
+
 $udp_server set packetSize_ 1000
 
 $udp_mr0	set packetSize_ 1000
@@ -1160,17 +1311,35 @@ set mysipapp_s1 [new Application/mysipApp]
 set mysipapp_s2 [new Application/mysipApp]
 set mysipapp_s3 [new Application/mysipApp]
 set mysipapp_s4 [new Application/mysipApp]
-set mysipapp_r [new Application/mysipApp]
+
+set mysipapp_r0 [new Application/mysipApp]
+set mysipapp_r2 [new Application/mysipApp]
+set mysipapp_r3 [new Application/mysipApp]
+set mysipapp_r4 [new Application/mysipApp]
+set mysipapp_r5 [new Application/mysipApp]
+
 set mysipapp_server [new Application/mysipApp]
+
 $mysipapp_s0 attach-agent $udp_s0
 $mysipapp_s1 attach-agent $udp_s1
 $mysipapp_s2 attach-agent $udp_s2
 $mysipapp_s3 attach-agent $udp_s3
 $mysipapp_s4 attach-agent $udp_s4
-$mysipapp_r attach-agent $udp_r
+
+$mysipapp_r0 attach-agent $udp_r0
+$mysipapp_r2 attach-agent $udp_r2
+$mysipapp_r3 attach-agent $udp_r3
+$mysipapp_r4 attach-agent $udp_r4
+$mysipapp_r5 attach-agent $udp_r5
+
 $mysipapp_server attach-agent $udp_server
 
-$mysipapp_r set_addr [$eface0_mn0 node-addr]
+$mysipapp_r0 set_addr [$eface0_mn0 node-addr]
+$mysipapp_r2 set_addr [$eface0_mn2 node-addr]
+$mysipapp_r3 set_addr [$eface0_mn3 node-addr]
+$mysipapp_r4 set_addr [$eface0_mn4 node-addr]
+$mysipapp_r5 set_addr [$eface0_mn5 node-addr]
+
 #change when mn1
 #$mysipapp_r set_addr [$eface0_mn1 node-addr]
 
@@ -1204,7 +1373,12 @@ $ns at 9 "$udp_s2 registration"
 $ns at 9 "$udp_s3 registration"
 $ns at 9 "$udp_s4 registration"
 
-$mysipapp_r myID_URL 8888 5.0.0
+$mysipapp_r0 myID_URL 8888 5.0.0
+$mysipapp_r2 myID_URL 7000 5.0.0
+$mysipapp_r3 myID_URL 7001 5.0.0
+$mysipapp_r4 myID_URL 7002 5.0.0
+$mysipapp_r5 myID_URL 7003 5.0.0
+
 $mysipapp_server myID_URL 88 5.0.0
 $mysipapp_server add_URL_record 9999  5.0.0 5.0.129
 
@@ -1221,7 +1395,8 @@ $ns attach-dch $eface0_mr0 $udp_mr0 $dch0
 $ns attach-dch $eface0_mr0 $nemo_eface0_mr0 $dch0
 
 
-$ns at 30 "$mysipapp_r send_invite 1001 5.0.0"
+$ns at 30 "$mysipapp_r0 send_invite 1000 5.0.0"
+
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop - 40] "$mysipapp_s0 dump_handoff_info" 
 $ns at [expr $moveStop - 40] "$mysipapp_s1 dump_handoff_info" 
