@@ -230,6 +230,11 @@ private:
 	vector <SIPEntry*> rehome_mn_coa_entry_random(int caddr);
 	vector <SIPEntry*> renew_mn_coa_entry_random(int caddr);
 	
+	SIPEntry* get_mr_ha_entry_round_robin();
+	
+	int round_count;
+	
+	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);
 	
