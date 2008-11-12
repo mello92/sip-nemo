@@ -82,7 +82,7 @@ Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set debug_ 1
 Agent/MIHUser/IFMNGMT/MIPV6	set debug_ 1
 Mac/802_11 set debug_ 0
 #Mac/802_11 set debug_ 1
-Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set confidence_th_ 83
+Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set confidence_th_ 100
 
 Agent/NEMO set debug_ 1
 Agent/UDP/Udpmysip set debug_ 1

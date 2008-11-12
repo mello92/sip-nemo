@@ -43,7 +43,7 @@ Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
 #Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
-Agent/UDP/Udpmysip set select_ 1
+Agent/UDP/Udpmysip set select_ 4
 
 # seed the default RNG
 global defaultRNG
@@ -1458,11 +1458,11 @@ $ns attach-dch $eface0_mr0 $udp_mr0 $dch0
 $ns attach-dch $eface0_mr0 $nemo_eface0_mr0 $dch0
 
 
-#$ns at 20 "$mysipapp_r0 send_invite 1000 5.0.0"
-#$ns at 20 "$mysipapp_r2 send_invite 1001 5.0.0"
-#$ns at 20 "$mysipapp_r3 send_invite 1002 5.0.0"
-#$ns at 20 "$mysipapp_r4 send_invite 1003 5.0.0"
-#$ns at 20 "$mysipapp_r5 send_invite 1004 5.0.0"
+$ns at 20 "$mysipapp_r0 send_invite 1000 5.0.0"
+$ns at 20 "$mysipapp_r2 send_invite 1001 5.0.0"
+$ns at 20 "$mysipapp_r3 send_invite 1002 5.0.0"
+$ns at 20 "$mysipapp_r4 send_invite 1003 5.0.0"
+$ns at 20 "$mysipapp_r5 send_invite 1004 5.0.0"
 $ns at 20 "$mysipapp_r6 send_invite 1005 5.0.0"
 
 

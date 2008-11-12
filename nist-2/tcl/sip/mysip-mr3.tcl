@@ -83,7 +83,7 @@ Agent/MIHUser/IFMNGMT/MIPV6	set debug_ 1
 Mac/802_11 set debug_ 0
 #Mac/802_11 set debug_ 1
 
-Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set confidence_th_ 100
+Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set confidence_th_ 83
 
 Agent/NEMO set debug_ 1
 
@@ -724,7 +724,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 60 "$mysipapp_s send_invite 8888 5.0.0"
+$ns at 65 "$mysipapp_s send_invite 8888 5.0.0"
 #$ns at 89 "$mysipapp_s send_invite 8888 5.0.0"
 $ns at [expr $moveStop - 40] "$mysipapp_r dump_handoff_info" 
 

@@ -45,6 +45,8 @@ UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL), node_type_(SIP_CN), f
 //	printf("UdpmysipA() new_addr=%d\n",new_addr);
 	asm_info.seq = -1;
 	round_count = 0;
+	weight_count = 0;
+	weight_count2 = 0;
 }
 
 int UdpmysipAgent::command(int argc, const char*const* argv) {
@@ -302,6 +304,10 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				bu= get_mr_ha_entry_random();
 			else if(select_==2)
 				bu= get_mr_ha_entry_round_robin();
+			else if(select_==3)
+				bu= get_mr_ha_entry_weight();
+			else if(select_==4)
+				bu= get_mr_ha_entry_weight_2();
 			else
 				bu= get_entry_by_prefix(prefix);
 
@@ -831,11 +837,21 @@ void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
 			vector <SIPEntry*> bu_mn = renew_mn_coa_entry_random(iface->address());
 			dump();
 		}
-//		else if(select_==2)
-//		{
-//			vector <SIPEntry*> bu_mn = renew_mn_coa_round_robin(iface->address());
-//			dump();
-//		}
+		else if(select_==2)
+		{
+			vector <SIPEntry*> bu_mn = renew_mn_coa_entry_round_robin(iface->address());
+			dump();
+		}
+		else if(select_==3)
+		{
+			vector <SIPEntry*> bu_mn = renew_mn_coa_entry_weight(iface->address());
+			dump();
+		}
+		else if(select_==4)
+		{
+			vector <SIPEntry*> bu_mn = renew_mn_coa_entry_weight_2(iface->address());
+			dump();
+		}
 		
 		debug("send_reg daddr %s dport %d saddr %s sport %d\n",
 				Address::instance().print_nodeaddr(iph->daddr()),iph->dport(),
@@ -1155,6 +1171,238 @@ SIPEntry* UdpmysipAgent::get_mr_ha_entry_round_robin()
 	return mr_ha[round_count++%mr_ha.size()];
 }
 
+vector <SIPEntry*> UdpmysipAgent::rehome_mn_coa_entry_round_robin(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mr_ha;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()!=-1) {
+			mr_ha.push_back(bu);
+		}
+	}
+	
+	bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mn;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN && bu->con()==caddr) {
+			if(mr_ha.empty())
+				bu->con()=-1;
+			else
+				bu->con()=mr_ha[round_count++%mr_ha.size()]->con();
+			mn.push_back(bu);
+		}
+	}
+	return mn;
+}
+
+vector <SIPEntry*> UdpmysipAgent::renew_mn_coa_entry_round_robin(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	Random::seed_heuristically();
+	
+	vector <SIPEntry *> mn;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN) {
+			mn.push_back(bu);
+		}
+	}
+	
+	if(!mn.empty())
+	{
+		
+		int new_count=0;
+		int old1_addr=0;
+		int old2_addr=0;
+		int old1_count=0;
+		int old2_count=0;
+		
+		for(unsigned int i=0;i<mn.size();i++) 
+		{
+			if(i==0)
+			{
+				old1_addr = mn[i]->con();
+				mn[i]->con() = caddr;
+				old1_count++;
+				new_count++;
+			} else if (mn[i]->con()!=old1_addr) 
+			{
+				if(old2_addr==0)
+				{
+					old2_addr = mn[i]->con();
+					mn[i]->con() = caddr;
+					old2_count++;
+					new_count++;
+					
+				} else
+				{
+					if(old2_count<=new_count)
+						old2_count++;
+					else {
+						mn[i]->con() = caddr;
+						new_count++;
+					}
+				}
+			} else 
+			{
+				if(old1_count<=new_count)
+					old1_count++;
+				else {
+					mn[i]->con() = caddr;
+					new_count++;
+				}
+			} 
+		}
+	}
+	
+	return mn;
+}
+
+SIPEntry* UdpmysipAgent::get_mr_ha_entry_weight()
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mr_ha;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()!=-1) {
+			mr_ha.push_back(bu);
+		}
+	}
+	if(mr_ha.size()==1)
+		return mr_ha[0];
+	else
+	return mr_ha[1];
+}
+
+vector <SIPEntry*> UdpmysipAgent::rehome_mn_coa_entry_weight(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mr_ha;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()!=-1) {
+			mr_ha.push_back(bu);
+		}
+	}
+	
+	bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mn;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN && bu->con()==caddr) {
+			if(mr_ha.empty())
+				bu->con()=-1;
+			else
+				bu->con()=mr_ha[0]->con();
+			mn.push_back(bu);
+		}
+	}
+	return mn;
+}
+
+vector <SIPEntry*> UdpmysipAgent::renew_mn_coa_entry_weight(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	Random::seed_heuristically();
+	
+	vector <SIPEntry *> mn;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN) {
+			mn.push_back(bu);
+		}
+	}
+	
+	if(!mn.empty())
+	{
+		for(unsigned int i=0;i<mn.size();i++) 
+		{
+			mn[i]->con()=caddr;
+		}
+	}
+	
+	return mn;
+}
+
+SIPEntry* UdpmysipAgent::get_mr_ha_entry_weight_2()
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mr_ha;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()!=-1) {
+			mr_ha.push_back(bu);
+		}
+	}
+	if(mr_ha.size()==1)
+		return mr_ha[0];
+	else if(weight_count==0)
+	{
+		weight_count++;
+		return mr_ha[0];
+	}
+	else
+		return mr_ha[1];
+	
+}
+
+vector <SIPEntry*> UdpmysipAgent::rehome_mn_coa_entry_weight_2(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mr_ha;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()!=-1) {
+			mr_ha.push_back(bu);
+		}
+	}
+	
+	bu =  siplist_head_.lh_first;
+	
+	vector <SIPEntry *> mn;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN && bu->con()==caddr) {
+			if(mr_ha.empty())
+				bu->con()=-1;
+			else{
+				if(weight_count2==0)
+					bu->con()=mr_ha[1]->con();
+				else
+					bu->con()=mr_ha[0]->con();
+			}
+			weight_count2++;
+			mn.push_back(bu);
+		}
+	}
+	return mn;
+}
+
+vector <SIPEntry*> UdpmysipAgent::renew_mn_coa_entry_weight_2(int caddr)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	Random::seed_heuristically();
+	
+	vector <SIPEntry *> mn;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN) {
+			mn.push_back(bu);
+		}
+	}
+	
+	if(!mn.empty())
+	{
+		for(unsigned int i=0;i<mn.size();i++) 
+		{
+			if(i==2)
+				;
+			else
+				mn[i]->con()=caddr;
+			
+		}
+	}
+	
+	return mn;
+}
 void UdpmysipAgent::send_temp_move_pkt(Packet* p)
 {
 	hdr_ip *iph= HDR_IP(p);
@@ -1286,9 +1534,52 @@ void UdpmysipAgent::re_homing(Node *iface)
 		
 		dump();
 		
-	} else {
+	} else if(select_==2) {
 		
+		SIPEntry* bu_break = get_entry_by_iface(iface);
+		SIPEntry* bu_new = get_entry_without_iface(iface);
+		assert(bu_break!=NULL);
+		assert(bu_new!=NULL);
+		
+		int con;
+		con = bu_break->con();
+		bu_break->con()=-1;
+		
+		vector <SIPEntry*> bu_mn = rehome_mn_coa_entry_round_robin(con);
+		
+		dump();
+		
+	} else if(select_==3) {
+			
+		SIPEntry* bu_break = get_entry_by_iface(iface);
+		SIPEntry* bu_new = get_entry_without_iface(iface);
+		assert(bu_break!=NULL);
+		assert(bu_new!=NULL);
 
+		int con;
+		con = bu_break->con();
+		bu_break->con()=-1;
+
+		vector <SIPEntry*> bu_mn = rehome_mn_coa_entry_weight(con);
+
+		dump();
+		
+	} else if(select_==4) {
+			
+		SIPEntry* bu_break = get_entry_by_iface(iface);
+		SIPEntry* bu_new = get_entry_without_iface(iface);
+		assert(bu_break!=NULL);
+		assert(bu_new!=NULL);
+
+		int con;
+		con = bu_break->con();
+		bu_break->con()=-1;
+
+		vector <SIPEntry*> bu_mn = rehome_mn_coa_entry_weight_2(con);
+
+		dump();
+		
+	} else {
 	SIPEntry* bu_break = get_entry_by_iface(iface);
 	SIPEntry* bu_new = get_entry_without_iface(iface);
 	SIPEntry* bu_mn = get_entry_by_type(SIP_MN);
