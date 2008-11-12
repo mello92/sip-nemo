@@ -231,9 +231,19 @@ private:
 	vector <SIPEntry*> renew_mn_coa_entry_random(int caddr);
 	
 	SIPEntry* get_mr_ha_entry_round_robin();
-	
+	vector <SIPEntry*> rehome_mn_coa_entry_round_robin(int caddr);
+	vector <SIPEntry*> renew_mn_coa_entry_round_robin(int caddr);
 	int round_count;
 	
+	SIPEntry* get_mr_ha_entry_weight();
+	vector <SIPEntry*> rehome_mn_coa_entry_weight(int caddr);
+	vector <SIPEntry*> renew_mn_coa_entry_weight(int caddr);
+	
+	SIPEntry* get_mr_ha_entry_weight_2();
+	vector <SIPEntry*> rehome_mn_coa_entry_weight_2(int caddr);
+	vector <SIPEntry*> renew_mn_coa_entry_weight_2(int caddr);
+	int weight_count;
+	int weight_count2;
 	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);

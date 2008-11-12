@@ -731,7 +731,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 60 "$mysipapp_s send_invite 9999 5.0.1"
+$ns at 65 "$mysipapp_s send_invite 9999 5.0.1"
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop - 40] "$mysipapp_r dump_handoff_info" 
 
