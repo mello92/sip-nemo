@@ -352,7 +352,7 @@ $bs_eface1_mr0_Mac set-channel 1
 
 # configure Base station 802.11
 set bs_eface2_mr0 [$ns node 10.0.0]
-$bs_eface2_mr0 set X_ 720.0
+$bs_eface2_mr0 set X_ 780.0
 $bs_eface2_mr0 set Y_ 1000.0
 $bs_eface2_mr0 set Z_ 0.0
 if {$quiet == 0} {
@@ -414,7 +414,7 @@ $bs_eface1_mr1_Mac set-channel 4
 
 # configure Base station 802.11
 set bs_eface2_mr1 [$ns node 13.0.0]
-$bs_eface2_mr1 set X_ 720.0
+$bs_eface2_mr1 set X_ 780.0
 $bs_eface2_mr1 set Y_ 1000.0
 $bs_eface2_mr1 set Z_ 0.0
 if {$quiet == 0} {
@@ -620,7 +620,7 @@ $ns node-config  -adhocRouting $opt(adhocRouting) \
 
 # configure Base station 802.16
 set bs_eface3_mr0 [$ns node 18.0.0] ;
-$bs_eface3_mr0 set X_ 1000
+$bs_eface3_mr0 set X_ 300
 $bs_eface3_mr0 set Y_ 1000
 $bs_eface3_mr0 set Z_ 0.0
 puts "bs_eface3_mr0: tcl=$bs_eface3_mr0; id=[$bs_eface3_mr0 id]; addr=[$bs_eface3_mr0 node-addr]"
@@ -1395,7 +1395,12 @@ $ns attach-dch $eface0_mr0 $udp_mr0 $dch0
 $ns attach-dch $eface0_mr0 $nemo_eface0_mr0 $dch0
 
 
-$ns at 30 "$mysipapp_r0 send_invite 1000 5.0.0"
+$ns at 20 "$mysipapp_r0 send_invite 1000 5.0.0"
+$ns at 20 "$mysipapp_r2 send_invite 1001 5.0.0"
+$ns at 20 "$mysipapp_r3 send_invite 1002 5.0.0"
+$ns at 20 "$mysipapp_r4 send_invite 1003 5.0.0"
+$ns at 20 "$mysipapp_r5 send_invite 1004 5.0.0"
+
 
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop - 40] "$mysipapp_s0 dump_handoff_info" 
