@@ -44,6 +44,7 @@ UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL), node_type_(SIP_CN), f
 	//new_addr = 0;
 //	printf("UdpmysipA() new_addr=%d\n",new_addr);
 	asm_info.seq = -1;
+	round_count = 0;
 }
 
 int UdpmysipAgent::command(int argc, const char*const* argv) {
@@ -299,6 +300,8 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			
 			if(select_==1)
 				bu= get_mr_ha_entry_random();
+			else if(select_==2)
+				bu= get_mr_ha_entry_round_robin();
 			else
 				bu= get_entry_by_prefix(prefix);
 
@@ -826,9 +829,13 @@ void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
 		if(select_==1)
 		{
 			vector <SIPEntry*> bu_mn = renew_mn_coa_entry_random(iface->address());
-			debug("renew_mn_coa_entry_random\n");
 			dump();
 		}
+//		else if(select_==2)
+//		{
+//			vector <SIPEntry*> bu_mn = renew_mn_coa_round_robin(iface->address());
+//			dump();
+//		}
 		
 		debug("send_reg daddr %s dport %d saddr %s sport %d\n",
 				Address::instance().print_nodeaddr(iph->daddr()),iph->dport(),
@@ -1132,6 +1139,20 @@ vector <SIPEntry*> UdpmysipAgent::renew_mn_coa_entry_random(int caddr)
 	}
 	
 	return mn;
+}
+
+SIPEntry* UdpmysipAgent::get_mr_ha_entry_round_robin()
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	Random::seed_heuristically();
+	
+	vector <SIPEntry *> mr_ha;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->con()!=-1) {
+			mr_ha.push_back(bu);
+		}
+	}
+	return mr_ha[round_count++%mr_ha.size()];
 }
 
 void UdpmysipAgent::send_temp_move_pkt(Packet* p)
