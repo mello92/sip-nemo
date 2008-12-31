@@ -378,6 +378,9 @@ class MIPV6Agent : public IFMNGMTAgent {
 //  void send_bu_msg(Node *iface);
 //  int v_to_v ;
   void send_bu_msg(int prefix, Node *iface);
+  
+  void send_mr_bu_msg(int prefix, Node *iface);
+  
 	void tunneling(Packet* p);
 	void re_homing(Node *iface);
   //----------------sem end------------------//
@@ -387,6 +390,7 @@ class MIPV6Agent : public IFMNGMTAgent {
   virtual void process_new_prefix (new_prefix*);
   virtual void process_exp_prefix (exp_prefix*);
 
+  virtual void process_mr_prefix (new_prefix*);
 
   // Message processing
   void recv_redirect(Packet*);

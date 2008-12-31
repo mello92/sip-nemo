@@ -32,6 +32,8 @@ mysipApp::mysipApp() : running_(0), snd_timer_(this), ack_timer_(this),ok_timer_
   bind_bw("rate4_", &rate[4]);
   bind("pktsize_", &pktsize_);
   bind_bool("random_", &random_);
+  
+  strcpy(filename_all,"total");
 
   //0401  be very careful for add_urllist
   LIST_INIT(&url_head);
@@ -221,7 +223,7 @@ void mysipApp::send_mysip_data()
 //    show_sipheader(&sip_buf);
     agent_->sendmsg(pktsize_, (char*) &sip_buf);  // send to UDP
 
-    snd_timer_.resched(0.01);
+//    snd_timer_.resched(0.01);
 /*     
  *     FILE *op;
  *     op = fopen(filename,"a");
@@ -381,7 +383,7 @@ void mysipApp::account_recv_pkt(const hdr_mysip *sip_buf)
   FILE *op,*op2;
   op = fopen(filename,"a");
   
-  if(filename_all=="")
+  if(filename_all=="total")
 	  op2 = fopen("total","a");
   else
 	  op2 = fopen(filename_all,"a");
@@ -473,15 +475,21 @@ void mysipApp::measure_handoff()
 
 void mysipApp::init_recv_pkt_accounting()
 {
-   FILE *op;
-   op = fopen(filename,"w");
-   fclose(op);
-   op = fopen(filename_sec,"w");
-   fclose(op);
-   op = fopen(filename_all,"w");
-   fclose(op);
-   op = fopen("total","w");
-   fclose(op);
+	FILE *op;
+	op = fopen(filename,"w");
+	fclose(op);
+	op = fopen(filename_sec,"w");
+	fclose(op);
+	if(filename_all=="total")
+   {
+		op = fopen("total","w");
+		fclose(op);
+ }else {
+	  op = fopen(filename_all,"w");
+	  fclose(op);
+   }
+
+   
    p_accnt.last_seq = -1;
    p_accnt.last_scale = 0; 
    p_accnt.lost_pkts = 0;

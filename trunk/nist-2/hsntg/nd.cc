@@ -412,6 +412,12 @@ void NDAgent::recv(Packet* p, Handler *h)
 	  // we are in host mode, update information
 	  recv_ads(p);
 	}
+	  //----------------	sem start ----------------
+      else
+   {
+	  recv_ads_mr(p);
+   }
+	  //----------------	sem end ----------------
       //else router mode. Silently discard RA packet.
     }
   if (hdrc->ptype() == PT_RSOL)
@@ -435,7 +441,7 @@ void NDAgent::recv_ads(Packet *p)
   hdr_rtads *rh = HDR_RTADS(p);
   hdr_ip *iph = HDR_IP(p);
   double timer_lifetime;
-
+  
   assert (!router_); //only hosts can process RA
 
   debug ("At %f in %s ND module received RA from node %s\n", NOW, MYNUM, \
@@ -480,6 +486,57 @@ void NDAgent::recv_ads(Packet *p)
     }
   }
 }
+
+//	---------------- sem start ----------------
+void NDAgent::recv_ads_mr(Packet *p)
+{
+	hdr_rtads *rh = HDR_RTADS(p);
+	hdr_ip *iph = HDR_IP(p);
+//	double timer_lifetime;
+	debug ("At %f in %s ND module received MR_RA from node %s\n", NOW, MYNUM, \
+			Address::instance().print_nodeaddr(iph->saddr()));
+
+/*	debug ("\trouter-lifetime=%f s\n\tprefix valid_lifetime=%d s\n\tprefix=%s\n\tadvertisement interval=%d ms\n",\
+			rh->router_lifetime (), rh->valid_lifetime (), Address::instance().print_nodeaddr(rh->prefix()), rh->advertisement_interval());
+
+	//see if we were expecting the answer
+	if (rsTimer_.status()!=TIMER_IDLE)
+		rsTimer_.cancel();
+
+	//we want to allow a maximum of 2 packets lost and we convert to seconds
+	timer_lifetime = ((double)rh->advertisement_interval())*0.003;
+
+	// We search in list of neighbors to check if we know about this prefix
+	Entry *node = lookup_entry(rh->prefix(), head(nlist_head_));
+	if ( node ) { 
+		// We already have this prefix in the list.  
+		// Update information
+		debug ("\t-> Update lifetime \n");
+		if (useAdvInterval_)
+			node->update_entry(NOW, timer_lifetime);
+		else
+			node->update_entry(NOW, rh->router_lifetime());
+	} else { 
+		// New RA.  This prefix is not in the list yet
+		debug ("\t-> New neighbor\n");     
+		if (useAdvInterval_)
+			add_prefix(rh->prefix(), timer_lifetime);
+		else
+			add_prefix(rh->prefix(), rh->router_lifetime());
+*/
+	
+		//notify interface manager
+		if (iMngmnt_){
+			new_prefix *data = (new_prefix*)malloc (sizeof(new_prefix));
+			Tcl& tcl= Tcl::instance();
+			tcl.evalf ("%s set node_", this->name());
+			data->interface=(Node *) TclObject::lookup(tcl.result());
+			data->prefix=rh->prefix();
+			iMngmnt_->process_nd_event (ND_MR, data);
+		}
+//	}
+}
+//	---------------- sem end	---------------- 
 
 /*
  * Process router solicitation

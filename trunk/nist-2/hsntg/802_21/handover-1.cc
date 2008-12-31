@@ -447,6 +447,34 @@ void Handover1::process_new_prefix (new_prefix* data)
   
 }
 
+void Handover1::process_mr_prefix (new_prefix* data)
+{
+	Mac *mac;
+	Tcl& tcl = Tcl::instance();
+
+	//Now we got the address of new PoA
+	//get the MAC for which we received a new prefix.
+	tcl.evalf ("%s set mac_(0)",data->interface->name());
+	mac = (Mac*) TclObject::lookup(tcl.result());
+	char *str1 = Address::instance().print_nodeaddr(this->addr());
+	char *str2 = Address::instance().print_nodeaddr(data->prefix);
+	debug ("At %f in %s Handover1 received new prefix %s\n", NOW, str1, str2);
+	delete []str1;
+	delete []str2;
+
+	compute_new_address (data->prefix, data->interface);
+
+	//----------------sem start------------------//
+	if(udpmysip_!=0 )
+	{
+		printf("sip enable\n");
+//		udpmysip_->send_reg_msg(data->prefix, data->interface);
+	}
+	else	
+		send_mr_bu_msg(data->prefix, data->interface);
+	//----------------sem end------------------//
+}
+
 /**
  * Process MIH_Capability_Discover.confirm
  * @param mihh The packet containing the response

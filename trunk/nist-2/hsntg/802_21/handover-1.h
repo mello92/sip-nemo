@@ -55,6 +55,8 @@ class Handover1 : public Handover {
   void process_new_prefix (new_prefix*);
   void process_exp_prefix (exp_prefix*);
   void register_mih ();
+  
+  void process_mr_prefix (new_prefix*);
 
   /**
    * Process MIH_Capability_Discover.confirm
