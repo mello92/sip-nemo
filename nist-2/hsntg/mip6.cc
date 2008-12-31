@@ -269,6 +269,9 @@ void MIPV6Agent::process_nd_event(int type, void* data) {
 	case ND_PREFIX_EXPIRED:
 		process_exp_prefix((exp_prefix *)data);
 		break;
+	case ND_MR:
+		process_mr_prefix((new_prefix *)data);
+		break;
 	}
 }
 
@@ -441,17 +444,17 @@ void MIPV6Agent::send_rs(Mac *mac) {
 		NOW, MYNUM);
 		
 		//----------------sem start------------------//
-		Tcl& tcl = Tcl::instance();
-		tcl.evalf("%s get-node",mac->name());
-		Node *node = (Node*)TclObject::lookup(tcl.result());
-		
-		if(udpmysip_!=0 )
-		{
-			printf("sip enable\n");
-			udpmysip_->send_reg_msg(0, node);
-		}
-		else	
-			send_bu_msg(0, node);
+//		Tcl& tcl = Tcl::instance();
+//		tcl.evalf("%s get-node",mac->name());
+//		Node *node = (Node*)TclObject::lookup(tcl.result());
+//		
+//		if(udpmysip_!=0 )
+//		{
+//			printf("sip enable\n");
+//			udpmysip_->send_reg_msg(0, node);
+//		}
+//		else	
+//			send_bu_msg(0, node);
 		//----------------sem end------------------//
 		
 	}
@@ -702,7 +705,22 @@ void MIPV6Agent::process_exp_prefix(exp_prefix* data) {
 	free(data);
 }
 
-
+void MIPV6Agent::process_mr_prefix(new_prefix* data) {
+	//to be defined by subclass
+	//----------------sem start------------------//
+	printf("MIPv6Agent::process_mr_prefix\n");
+	compute_new_address (data->prefix, data->interface);
+	if(udpmysip_!=0 )
+	{
+		printf("sip enable\n");
+//		udpmysip_->send_mr_reg_msg(data->prefix, data->interface);
+	}
+	else	
+		send_mr_bu_msg(data->prefix, data->interface);
+	//----------------sem end------------------//
+	
+	free(data);
+}
 
 void MIPV6Agent::dump() {
 	
@@ -1274,6 +1292,13 @@ void MIPV6Agent::send_bu_msg(int prefix, Node *iface) {
 			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
 
 }
+
+void MIPV6Agent::send_mr_bu_msg(int prefix, Node *iface) {
+	debug(
+			"At %f MIPv6 Agent in %s send mr binding update message using interface %s\n", 
+			NOW, MYNUM, Address::instance().print_nodeaddr(iface->address()));
+}
+
 void MIPV6Agent::send_cn_bu_msg(Packet* p, int prefix) {
 	
 }
@@ -1595,7 +1620,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-//			hdrc->size()+=20;
+			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();

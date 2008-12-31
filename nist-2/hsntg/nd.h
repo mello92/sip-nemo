@@ -113,6 +113,9 @@ struct hdr_rtsol {
 //defines the types of events the ND can produce
 #define ND_NEW_PREFIX 0
 #define ND_PREFIX_EXPIRED 1
+//	---------------- sem start ----------------
+#define ND_MR 2
+//	---------------- sem start ----------------
 
 /*
  * Define structure for new prefix
@@ -354,7 +357,11 @@ class NDAgent : public Agent {
   void send_rs(int);           //Send RS
   void recv_rs(Packet *);      //Process RS
   void process_rsreply (RSreplyTimer *);
-
+  
+  //	---------------- sem start ----------------
+  void recv_ads_mr(Packet *);     //Process RA
+  //	---------------- sem end	---------------- 
+  
   //debug
   void dump_table ();
 };

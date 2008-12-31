@@ -47,6 +47,7 @@ UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL), node_type_(SIP_CN), f
 	round_count = 0;
 	weight_count = 0;
 	weight_count2 = 0;
+	select_ = 0;
 }
 
 int UdpmysipAgent::command(int argc, const char*const* argv) {
@@ -637,7 +638,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==1)
 		{
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv 200ok packet\n", NOW, MYNUM);
 		}
 		if(mh->method==7)
