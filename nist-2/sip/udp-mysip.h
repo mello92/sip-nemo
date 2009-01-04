@@ -199,6 +199,9 @@ public:
 	void send_reg_msg();
 	void re_homing(Node *iface);
 	
+	//	muliple router use
+	void process_mr(int prefix, Node *iface);
+	
 protected:
 	int support_mm_; // set to 1 if above is mysipApp
 	
