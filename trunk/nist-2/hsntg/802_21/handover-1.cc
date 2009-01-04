@@ -462,16 +462,16 @@ void Handover1::process_mr_prefix (new_prefix* data)
 	delete []str1;
 	delete []str2;
 
-	compute_new_address (data->prefix, data->interface);
-
-	//----------------sem start------------------//
-	if(udpmysip_!=0 )
-	{
-		printf("sip enable\n");
-//		udpmysip_->send_reg_msg(data->prefix, data->interface);
-	}
-	else	
-		send_mr_bu_msg(data->prefix, data->interface);
+//	compute_new_address (data->prefix, data->interface);
+//
+//	//----------------sem start------------------//
+//	if(udpmysip_!=0 )
+//	{
+//		printf("sip enable\n");
+////		udpmysip_->send_reg_msg(data->prefix, data->interface);
+//	}
+//	else	
+//		send_mr_bu_msg(data->prefix, data->interface);
 	//----------------sem end------------------//
 }
 

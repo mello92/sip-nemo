@@ -306,7 +306,9 @@ Mac802_11::Mac802_11() :
 	mhRecv_(this), mhSend_(this), 
 	mhDefer_(this), mhBackoff_(this)
 {
-	
+//	//----------------sem start----------------
+//	mr=0;
+//	//----------------sem end----------------
 	nav_ = 0.0;
 	tx_state_ = rx_state_ = MAC_IDLE;
 	tx_active_ = 0;
@@ -2939,21 +2941,51 @@ void Mac802_11::recvBeacon(Packet *p)
 	//if I am a BS, discard message
 	if (index_ == bss_id_) {
 		debug ("\t Overlapping cells (BS=%d and BS=%d)\n", index_, src);
-		//	sem start
-//		link_connect (src,channel_);
-//		index_ = bss_id_;
-		Client *cl;
-		for ( cl=list_client_head_.lh_first; cl; cl=cl->next_entry()) {
-			if((u_int32_t)cl->id()==src) {
-				break;
-			}
-		}
-		if (!cl) {
-			debug("New Client, adding entry in client list\n");
-			cl = new Client (src, client_lifetime_, this);
-			cl->insert_entry(&list_client_head_);
-		}
-		//	sem end
+//		//	sem start
+////		link_connect (src,channel_);
+////		index_ = bss_id_;
+//		Client *cl;
+//		for ( cl=list_client_head_.lh_first; cl; cl=cl->next_entry()) {
+//			if((u_int32_t)cl->id()==src) {
+//				break;
+//			}
+//		}
+//		if (!cl) {
+//			
+//			debug("New MR Client, adding entry in client list\n");
+//			cl = new Client (src, client_lifetime_, this);
+//			cl->status() = CLIENT_ASSOCIATED;
+//			//look up datarate 
+//			struct association_request_frame *assocReq = (struct association_request_frame*)p->access(hdr_mac::offset_);
+//			if (assocReq->supported_rate == 0x1) {
+//				cl->dataRate_ = 1000000; 
+//			} else if (assocReq->supported_rate == 0x2) {
+//				cl->dataRate_ = 2000000;
+//			} else if (assocReq->supported_rate == 0x3) {
+//				cl->dataRate_ = 5500000;
+//			} else if (assocReq->supported_rate == 0x4) {
+//				cl->dataRate_ = 11000000;
+//			} else {
+//				assert (assocReq->supported_rate == 0);
+//				cl->dataRate_ = dataRate_;
+//			}
+//			//debug to remove
+//			debug ("Node datarate is %f\n", cl->dataRate_);
+////			sendAssocResponse(src, cl);
+//			cl->insert_entry (&list_client_head_);
+////			send_link_up(addr(),src,old_bss_id_);
+//			
+////			cl->insert_entry(&list_client_head_);
+////
+////			channelIDAfterScan_[src] = channel_;
+////			printf("Link Connect to AP %d on Channel %d\n",src, channelIDAfterScan_[src]);
+////			Tcl& tcl = Tcl::instance();
+////			tcl.evalf ("%s set-freq %f", netif_->name(), calFreq(channelIDAfterScan_[src]));
+////			RXThreshold_ = ((WirelessPhy*)netif_)->getRXThresh ();
+//			mr=1;
+////			sendAssocRequest(src);
+//		}
+//		//	sem end
 		return;
 	}
 
@@ -3137,11 +3169,11 @@ void Mac802_11::link_connect (int macPoA, int channel)
 	clear_tx_rx();
 	//connect
 	//link_connect (macPoA);
-	//	sem	start//
-//	bss_id_ = macPoA;
-	debug ("At %.9f Mac %d Trigger Association with AP %i on channel %d\n", NOW, index_, macPoA, channel);
-	sendAssocRequest(macPoA);
-	//	sem	end//
+//	//	sem	start//
+////	bss_id_ = macPoA;
+//	debug ("At %.9f Mac %d Trigger Association with AP %i on channel %d\n", NOW, index_, macPoA, channel);
+//	sendAssocRequest(macPoA);
+//	//	sem	end//
 }
 
 
@@ -3978,8 +4010,10 @@ void Mac802_11::process_client_timeout (int addr)
  */
 double Mac802_11::getTxDatarate (Packet *p)
 {
-	
-	if (index_ == bss_id_ && ((u_int32_t) ETHER_ADDR(HDR_MAC802_11(p)->dh_ra) != MAC_BROADCAST )) {
+	//----------------sem start----------------
+	// below mr==0
+	//----------------sem end----------------
+	if (index_ == bss_id_ && ((u_int32_t) ETHER_ADDR(HDR_MAC802_11(p)->dh_ra) != MAC_BROADCAST ) ) {
 		//This is an AP and not a broadcast, use client information
 		for ( Client *n=list_client_head_.lh_first; n ; n=n->next_entry()) {
 			if((u_int32_t) n->id() == (u_int32_t) ETHER_ADDR(HDR_MAC802_11(p)->dh_ra)){

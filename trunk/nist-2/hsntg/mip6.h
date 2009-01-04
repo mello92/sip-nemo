@@ -156,7 +156,12 @@ public:
 		eface_agent_ = eface_agent;
 		iface_agent_ = iface_agent;
 	}
-
+	inline void set_mface(int nemo_prefix, NEMOAgent *iface_agent)
+	{
+		nemo_prefix_ = nemo_prefix;
+		iface_agent_ = iface_agent;
+	}
+	
 	inline Mipv6NodeType& type() { return type_; }
 	inline int& addr() { return addr_;}
 	inline int& haddr() { return haddr_;}
@@ -369,6 +374,10 @@ class MIPV6Agent : public IFMNGMTAgent {
   void send_flow_request (vector<FlowEntry*>, Node *, int);
   //void process_client_going_down (int); //to remove
   void send_rs (Mac *); //send an RA message for the given interface
+  
+  //	muliple router use
+  void process_mr(new_prefix*);
+  
   //flow request timer
   FlowRequestTimer *flowRequestTimer_;
   double flowRequestTimeout_;
@@ -404,6 +413,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 	UdpmysipAgent* udpmysip_;
 //  NEMOAgent *nemo_;
 	int exp_;
+	int exp_mr_;
 	//----------------sem end------------------//
 
  private:
@@ -445,6 +455,11 @@ class MIPV6Agent : public IFMNGMTAgent {
 		BUEntry* get_mr_ha_entry_by_caddr(int caddr);
 		BUEntry* get_mr_ha_entry_by_iface(Node *iface);
 		BUEntry* get_mr_ha_entry_without_iface(Node *iface);
+		
+		BUEntry* get_mr_entry_by_prefix(int prefix);
+		BUEntry* get_mr_entry();
+		BUEntry* get_mr_ha_entry_on();
+		BUEntry* get_mr_ha_entry_off();
 		
 		vector <BUEntry*> get_mr_ha_entry_dead();
 		
