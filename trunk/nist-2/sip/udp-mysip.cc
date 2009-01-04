@@ -638,7 +638,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==1)
 		{
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv 200ok packet\n", NOW, MYNUM);
 		}
 		if(mh->method==7)
@@ -1664,5 +1664,11 @@ void UdpmysipAgent::re_homing(Node *iface)
 	}
 	}
 	debug("At %f UdpmysipAgent MR in %s re_homing\n", NOW, MYNUM);
+}
+
+void UdpmysipAgent::process_mr(int prefix, Node *iface)
+{
+	printf("UdpmysipAgent::process_mr\n");
+	
 }
 

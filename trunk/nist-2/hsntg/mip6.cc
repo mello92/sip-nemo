@@ -720,63 +720,71 @@ void MIPV6Agent::process_exp_prefix(exp_prefix* data) {
 
 void MIPV6Agent::process_mr(new_prefix* data) {
 	//----------------sem start------------------//
-	printf("MIPv6Agent::process_mr\n");
-	
-//	BUEntry* bu = get_mr_entry_by_iface(data->interface);
-	BUEntry* bu = get_mr_entry_by_prefix(data->interface->address());
-	
-	if(!bu)
+	if(udpmysip_!=0 )
 	{
-		printf("MIPV6Agent_Registration\n");
-		
-		
-		bu = new BUEntry(MR);
-		bu->addr()= data->prefix;
-		bu->prefix()=data->interface->address();
-		bu->insert_entry(&bulist_head_);
-		dump();
+		printf("sip enable\n");
+		udpmysip_->process_mr(data->prefix, data->interface);
+	}
+	else	{
 
-		
-		
-//		BUEntry *bu =  bulist_head_.lh_first;
-//		for(;bu;bu=bu->next_entry()) {
-//			if(bu->type()==MR_HA)
-//				break;
-//		}
-//
-//		int prefix = data->interface->address() & 0xFFFFF800;
-//		get_iface_agent_by_prefix(prefix)->send(p,0);
-		
-//		bu->iface()->send(p,0);
-//		data->interface->send(p,0);
-		
 
-		
-	} else {
-		bu->addr()= data->prefix;
-		dump();
-		
-		//	Send a packet for test
-		if(bu->iface())
+		printf("MIPv6Agent::process_mr\n");
+
+		//	BUEntry* bu = get_mr_entry_by_iface(data->interface);
+		BUEntry* bu = get_mr_entry_by_prefix(data->interface->address());
+
+		if(!bu)
 		{
-			Packet *p = allocpkt();
-			hdr_ip *iph = HDR_IP(p);
-			hdr_cmn *hdrc = HDR_CMN(p);
-			hdr_nemo *nh = HDR_NEMO(p);
+			printf("MIPV6Agent_Registration\n");
 
-			nh->type() = BU_MR;
-			iph->daddr() = data->prefix;
-			iph->dport() = port();
-			iph->saddr() = data->interface->address();
-			hdrc->ptype() = PT_NEMO;
-			hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
 
-			bu->iface()->send(p,0);
-			debug("At %f MIPv6 Agent in %s send BU_MR by %s \n", 
-					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
+			bu = new BUEntry(MR);
+			bu->addr()= data->prefix;
+			bu->prefix()=data->interface->address();
+			bu->insert_entry(&bulist_head_);
+			dump();
+
+
+
+			//		BUEntry *bu =  bulist_head_.lh_first;
+			//		for(;bu;bu=bu->next_entry()) {
+			//			if(bu->type()==MR_HA)
+			//				break;
+			//		}
+			//
+			//		int prefix = data->interface->address() & 0xFFFFF800;
+			//		get_iface_agent_by_prefix(prefix)->send(p,0);
+
+			//		bu->iface()->send(p,0);
+			//		data->interface->send(p,0);
+
+
+
+		} else {
+			bu->addr()= data->prefix;
+			dump();
+
+			//	Send a packet for test
+			if(bu->iface())
+			{
+				Packet *p = allocpkt();
+				hdr_ip *iph = HDR_IP(p);
+				hdr_cmn *hdrc = HDR_CMN(p);
+				hdr_nemo *nh = HDR_NEMO(p);
+
+				nh->type() = BU_MR;
+				iph->daddr() = data->prefix;
+				iph->dport() = port();
+				iph->saddr() = data->interface->address();
+				hdrc->ptype() = PT_NEMO;
+				hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+
+				bu->iface()->send(p,0);
+				debug("At %f MIPv6 Agent in %s send BU_MR by %s \n", 
+						NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
+			}
 		}
 	}
-	
 }
 
 void MIPV6Agent::process_mr_prefix(new_prefix* data) {
@@ -1828,7 +1836,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-			hdrc->size()+=20;
+//			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
