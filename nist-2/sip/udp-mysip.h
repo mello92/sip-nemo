@@ -114,6 +114,13 @@ public:
 		eface_agent_ = eface_agent;
 		iface_agent_ = iface_agent;
 	}
+	
+	inline void set_mface(int nemo_prefix, NEMOAgent *iface_agent)
+	{
+		nemo_prefix_ = nemo_prefix;
+		iface_agent_ = iface_agent;
+	}
+	
 
 	inline SipNodeType& type() { return type_; }
 	inline int& add_id() { return addr_id_;}
@@ -250,6 +257,10 @@ private:
 	
 	void send_temp_move_pkt(Packet* p);
 	void send_invite_to_temp_move_pkt(Packet* p);
+	
+	//	multiple router
+	SIPEntry* get_mr_entry_by_prefix(int prefix);
+	
 	
 	asm_mm asm_info; // packet re-assembly information
 	int session_run;

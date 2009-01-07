@@ -70,7 +70,7 @@
 #define BREQ_SIZE		DEST_HDR_PREFIX_SIZE + BU_REQ_OPT_SIZE
 
 typedef enum {
-	MN, MN_HA, MR, MR_HA, CN
+	MN, MN_HA, MR, MR_HA, CN, MR_BS
 } Mipv6NodeType;
 
 typedef enum {

@@ -172,6 +172,9 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 					case CN:
 						node_type_ = CN;
 						break;
+					case MR_BS:
+						node_type_ = MR_BS;
+						break;
 					default:
 						debug("no match type\n");
 						return TCL_ERROR;
