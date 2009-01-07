@@ -98,6 +98,19 @@ int UdpmysipAgent::command(int argc, const char*const* argv) {
 			return TCL_OK;
 		}
 	}
+	if (argc==4) {
+		if (strcmp(argv[1], "set-mface")==0) {
+			int nemo_prefix_ = Address::instance().str2addr(argv[2]);							//	nemo prefix
+			NEMOAgent *iface_agent_ = (NEMOAgent *)TclObject::lookup(argv[3]);		// internal interface nemo agent
+			if (iface_agent_==NULL)
+				return TCL_ERROR;
+			SIPEntry* sip = new SIPEntry(SIP_MR);
+			sip->set_mface(nemo_prefix_, iface_agent_);
+			sip->insert_entry(&siplist_head_);
+			dump();
+			return TCL_OK;
+		}
+	}
 	if (argc==6)
 	{
 		if (strcmp(argv[1], "set-sip-cn")==0) 
@@ -559,6 +572,11 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 			
 			ih->prio_ = 14;
+		}
+		else if(mh->method==10)
+		{
+			debug("At %f UdpmysipAgent MR in %s recv BU_MR packet from %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
 		}
 //		else if(mh->method==1)
 //		{
@@ -1666,9 +1684,54 @@ void UdpmysipAgent::re_homing(Node *iface)
 	debug("At %f UdpmysipAgent MR in %s re_homing\n", NOW, MYNUM);
 }
 
+SIPEntry* UdpmysipAgent::get_mr_entry_by_prefix(int prefix)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR && bu->prefix()==prefix) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
 void UdpmysipAgent::process_mr(int prefix, Node *iface)
 {
 	printf("UdpmysipAgent::process_mr\n");
-	
+	SIPEntry* bu = get_mr_entry_by_prefix(iface->address());
+	if(!bu)
+	{
+		printf("UdpmysipAgent_Registration\n");
+
+		bu = new SIPEntry(SIP_MR);
+		bu->add()= prefix;
+		bu->prefix()=iface->address();
+		bu->insert_entry(&siplist_head_);
+		dump();
+
+
+	} else {
+		bu->add()= prefix;
+		dump();
+
+		//	Send a packet for test
+		if(bu->iface())
+		{
+			Packet *p = allocpkt();
+			hdr_ip *iph = HDR_IP(p);
+			hdr_cmn *hdrc = HDR_CMN(p);
+			hdr_mysip *mh = HDR_MYSIP(p);
+
+			mh->method = 10;
+			iph->daddr() = prefix;
+			iph->dport() = port();
+			iph->saddr() = iface->address();
+			hdrc->size() = 200;
+
+			bu->iface()->send(p,0);
+			debug("At %f UdpmysipAgent Agent in %s send BU_MR by %s \n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
+		}
+	}
 }
 
