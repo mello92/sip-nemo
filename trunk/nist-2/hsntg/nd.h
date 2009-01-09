@@ -115,7 +115,7 @@ struct hdr_rtsol {
 #define ND_PREFIX_EXPIRED 1
 //	---------------- sem start ----------------
 #define ND_MR 2
-//	---------------- sem start ----------------
+//	---------------- sem end ----------------
 
 /*
  * Define structure for new prefix
@@ -172,7 +172,44 @@ class PrefixTimer : public TimerHandler {
 	int prefix_;
 };
 
-
+//	---------------- sem start ----------------
+/*
+ * BS list
+ * Store information about a neighbor: prefix, lifetime. 
+ */
+//class BSEntry;
+//LIST_HEAD(bs_entry, BSEntry);
+//class BSEntry {
+//	  BSEntry(int prefix, double lifetime)  { //constructor
+//	    prefix_ = prefix;	
+//	    time_ = lifetime;
+//	  }
+//	  ~BSEntry() { ; } //destructor
+//	  
+//	  // Chain element to the list
+//	  inline void insert_entry(struct bs_entry *head) {
+//	    LIST_INSERT_HEAD(head, this, link);
+//	  }
+//	  inline void update_entry(double lifetime) {
+//	    time_ = lifetime;
+//	  }
+//	  inline double& lifetime() { return time_; }
+//	  // Return the prefix information
+//	  inline int& prefix() {return prefix_; }
+//	  // Return next element in the chained list
+//	  BSEntry* next_entry(void) const { return link.le_next; }
+//	  // Remove the entry from the list
+//	  inline void remove_entry() { 
+//		  LIST_REMOVE(this, link); 
+//	  }
+//
+//	  int prefix_;            // router prefix
+//	  double time_; 	  // lifetime of this entry 
+//	  
+//protected:
+//	LIST_ENTRY(BSEntry) link; 
+//};
+//	---------------- sem end ----------------
 
 /*
  * Neighbor list
@@ -311,8 +348,18 @@ class NDAgent : public Agent {
   void register_ifmodule (IFMNGMTAgent *);
   void send_rs ();
   struct entry nlist_head_;    //list of neighbors
-
+	 //-----------------sem start-----------------
+  Entry* get_mr_bs_entry_random();
+//  void add_mr_bs(int prefix, double lifetime);
+  Entry* add_prefix(int, double);
+	 //-----------------sem end------------------
+  
  protected:
+	 //-----------------sem start------------------
+	 int mr_bs;
+//	 struct bs_entry bs_list_head_;
+	 //-----------------sem end------------------
+	 
   Node *node_;                 //my node
   double rtrlftm_;             //router lifetime in seconds
   uint32_t prefix_lifetime_;   //prefix lifetime in seconds
@@ -345,7 +392,7 @@ class NDAgent : public Agent {
   // List Management
   Entry* lookup_entry(int, Entry *);	
   Entry* head(struct entry head) { return head.lh_first; }
-  Entry* add_prefix(int, double);
+  
 
   // Internal functions
   int add_ra_target (int);     //Add target for RAs
@@ -360,6 +407,7 @@ class NDAgent : public Agent {
   
   //	---------------- sem start ----------------
   void recv_ads_mr(Packet *);     //Process RA
+  
   //	---------------- sem end	---------------- 
   
   //debug

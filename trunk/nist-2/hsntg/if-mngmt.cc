@@ -229,6 +229,14 @@ void IFMNGMTAgent::process_nd_event (int type, void* data)
 
   free (data);
 }
+//----------------sem start------------------//
+void IFMNGMTAgent::set_mr_bs_prefix(new_prefix* data, double lifetime)
+{
+	debug ("At %f in %s Interface Manager received MR_BS prefix\n",NOW, MYNUM);
+
+	free (data);
+}
+//----------------sem end------------------//
 
 /*
  * Find the ND module in the node where the mac is

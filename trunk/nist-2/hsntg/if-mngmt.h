@@ -166,6 +166,10 @@ class IFMNGMTAgent : public MIHUserAgent {
   virtual void recv(Packet*, Handler*);
   //process events from the neighbor discovery module
   virtual void process_nd_event (int, void*); 
+  
+  //----------------sem start------------------//
+  virtual void set_mr_bs_prefix(new_prefix* data, double lifetime);
+  //----------------sem end------------------//
 
   Packet *getPacket ();
 

@@ -41,6 +41,10 @@ Agent/ND set rs_timeout_ 1.0
 Agent/ND set max_rtr_solicitation_ 3
 Agent/ND set default_port_ 254
 
+#-----------------sem start------------------
+Agent/ND set mr_bs 0
+#-----------------sem end------------------
+
 Agent/MIHUser set default_port_ 253
 
 Agent/MIHUser/IFMNGMT/MIPV6 set flowRequestTimeout_ 0.02
