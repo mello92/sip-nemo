@@ -747,11 +747,12 @@ $ns at 10 "$nd_mface0_mr1 start-ra"
 #		configure mr_bs
 set nd_iface0_mr_bs [$iface0_mr_bs install-nd]
 $nd_iface0_mr_bs set-router TRUE
+$nd_iface0_mr_bs set-mr-bs TRUE
 $nd_iface0_mr_bs router-lifetime 18
 $ns at 5 "$nd_iface0_mr_bs start-ra"
 
 set nd_mface0_mr_bs [$mface0_mr_bs install-nd]
-
+$nd_mface0_mr_bs set-mr-bs TRUE
 
 
 # MN
@@ -906,7 +907,14 @@ $handover_mr1 set-mface [$mface0_mr1 node-addr] $nemo_mface0_mr1
 #######################
 #		configure mr_bs
 set mipv6_mr_bs	[$mr_bs install-default-ifmanager]
+
+$nd_iface0_mr_bs set-ifmanager $mipv6_mr_bs
+$nd_mface0_mr_bs set-ifmanager $mipv6_mr_bs
+
 $mipv6_mr_bs set-node-type $node_type(MR_BS)
+
+$mipv6_mr_bs set-mr-bs $nemo_mface0_mr_bs $nemo_iface0_mr_bs 
+
 
 # MR HA
 #######################
@@ -956,6 +964,11 @@ $handover_mr1 nd_mac $nd_eface1_mr1 [$eface1_mr1 set mac_(0)]
 $handover_mr1 nd_mac $nd_eface2_mr1 [$eface2_mr1 set mac_(0)]
 
 $handover_mr1 nd_mac $nd_mface0_mr1 [$mface0_mr1 set mac_(0)]
+
+#######################
+#		configure mr_bs
+$mipv6_mr_bs nd_mac $nd_iface0_mr_bs [$iface0_mr_bs set mac_(0)]
+$mipv6_mr_bs nd_mac $nd_mface0_mr_bs [$mface0_mr_bs set mac_(0)]
 
 #
 #	create traffic: TCP application between router0 and Multi interface node

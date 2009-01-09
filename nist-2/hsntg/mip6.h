@@ -161,6 +161,11 @@ public:
 		nemo_prefix_ = nemo_prefix;
 		iface_agent_ = iface_agent;
 	}
+	inline void set_mr_bs(NEMOAgent *eface_agent, NEMOAgent *iface_agent)
+	{
+		eface_agent_ = eface_agent;
+		iface_agent_ = iface_agent;
+	}
 	
 	inline Mipv6NodeType& type() { return type_; }
 	inline int& addr() { return addr_;}
@@ -377,6 +382,8 @@ class MIPV6Agent : public IFMNGMTAgent {
   
   //	muliple router use
   void process_mr(new_prefix*);
+  void set_mr_bs_prefix(new_prefix* data, double lifetime);
+  BUEntry* get_mr_bs_entry_by_mface(Node *mface);
   
   //flow request timer
   FlowRequestTimer *flowRequestTimer_;

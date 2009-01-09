@@ -73,6 +73,14 @@ Entry* NDAgent::lookup_entry(int prefix, Entry *n)
    return NULL;
 }
 
+//----------------	sem start ---------------- 
+//void NDAgent::add_mr_bs(int prefix, double lifetime)
+//{
+//	BSEntry *bs = new BSEntry(prefix, lifetime);
+//	bs->insert_entry(&bs_list_head_);
+//}
+//----------------	sem end ---------------- 
+
 /*
  * Add a entry in the neighbor list
  * @param prefix The prefix to add
@@ -111,6 +119,11 @@ public:
  */
 NDAgent::NDAgent() : Agent(PT_UDP), timer_ (this), rsTimer_ (this) , iMngmnt_(NULL)
 {
+//-----------------sem start------------------
+//	LIST_INIT(&bs_list_head_);
+	bind("mr_bs", &mr_bs);
+//-----------------sem end------------------
+	 
   lastRA_time_ = 0; 
   nextRA_time_ = -1;
   nb_rtr_sol_ = 0; 
@@ -272,6 +285,17 @@ int NDAgent::command(int argc, const char*const* argv)
 	router_ = 0;
       return TCL_OK;  
     }
+//-----------------sem start------------------
+    // set the node as a router or host
+    if (strcmp(argv[1], "set-mr-bs") == 0) {
+    	if (strcmp(argv[2], "TRUE") == 0) 
+    		mr_bs = 1;
+    	else 
+    		mr_bs = 0;
+    	return TCL_OK;  
+    }
+//-----------------sem end------------------
+    
     // set the interface manager 
     if (strcmp(argv[1], "set-ifmanager") == 0) {
       iMngmnt_ = (IFMNGMTAgent *) TclObject::lookup(argv[2]);
@@ -315,12 +339,63 @@ int NDAgent::command(int argc, const char*const* argv)
   return (Agent::command(argc, argv));
 }
 
+//-----------------sem start------------------
+Entry* NDAgent::get_mr_bs_entry_random()
+{
+	Entry *bu =  nlist_head_.lh_first;
+	Random::seed_heuristically();
+	
+	vector <Entry *> mr_bs;
+	
+	for(;bu;bu=bu->next_entry()) {
+		mr_bs.push_back(bu);
+	}
+	
+	if(mr_bs.empty())
+		return NULL;
+	else
+		return mr_bs[Random::random()%mr_bs.size()];
+}
+//----------------	sem end ----------------
+
 /* 
  * Router advertisement are always broadcast packets
  * @param daddr The destination of the packet (IP_BROADCAST or unicast)
  */ 
 void NDAgent::send_ads( int daddr)
 {
+	//-----------------sem start------------------
+	if(mr_bs){
+		Entry *bu = get_mr_bs_entry_random();
+//		debug ("At %f in %s ND module MR_BS test\n");
+		if(bu)
+		{
+			Packet *p = allocpkt();
+			hdr_ip *iph = HDR_IP(p);
+			hdr_rtads *rh = HDR_RTADS(p);
+			hdr_cmn *hdrc = HDR_CMN(p);
+
+			//MAC 802.11 allows ip broadcast but not ethernet.TBD
+			iph->daddr() = daddr;
+			iph->dport() = port();
+			hdrc->ptype() = PT_RADS;
+			hdrc->size() = PT_RADS_SIZE;
+
+			rh->router_lifetime () = rtrlftm_;
+			rh->valid_lifetime () = (uint32_t) bu->lifetime();
+			rh->preferred_lifetime () = (uint32_t) bu->lifetime();
+			rh->prefix() = bu->prefix();
+			rh->advertisement_interval() = (uint32_t) (maxRtrAdvInterval_*1000); //convert to ms
+			
+			debug ("At %f in %s ND module MR_BS send RA prefix %s lifetime %d\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(bu->prefix()), bu->lifetime());
+
+			send(p, 0);
+		}
+
+	}else{
+		//----------------	sem end ----------------
+	
   Packet *p = allocpkt();
   hdr_ip *iph = HDR_IP(p);
   hdr_rtads *rh = HDR_RTADS(p);
@@ -341,6 +416,7 @@ void NDAgent::send_ads( int daddr)
   rh->advertisement_interval() = (uint32_t) (maxRtrAdvInterval_*1000); //convert to ms
    
   send(p, 0);
+	}
 }
 
 /*
@@ -477,13 +553,24 @@ void NDAgent::recv_ads(Packet *p)
 
     //notify interface manager
     if (iMngmnt_){
+
       new_prefix *data = (new_prefix*)malloc (sizeof(new_prefix));
       Tcl& tcl= Tcl::instance();
       tcl.evalf ("%s set node_", this->name());
       data->interface=(Node *) TclObject::lookup(tcl.result());
       data->prefix=rh->prefix();
+      //----------------	sem start ---------------- 
+      if(mr_bs){
+    	  if (useAdvInterval_)
+    		  iMngmnt_->set_mr_bs_prefix(data, timer_lifetime);
+    	  else
+    		  iMngmnt_->set_mr_bs_prefix(data, rh->router_lifetime());
+
+      }else{
+    	  //----------------	sem end ----------------
       iMngmnt_->process_nd_event (ND_NEW_PREFIX, data);
-    }
+    			}
+    	}
   }
 }
 

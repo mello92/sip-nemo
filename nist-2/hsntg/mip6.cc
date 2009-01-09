@@ -233,6 +233,16 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 			dump();
 			return TCL_OK;
 		}
+		if (strcmp(argv[1], "set-mr-bs")==0) 
+		{
+			NEMOAgent *eface_agent_ = (NEMOAgent *)TclObject::lookup(argv[2]);		// mface nemo agent
+			NEMOAgent *iface_agent_ = (NEMOAgent *)TclObject::lookup(argv[3]);		// mface nemo agent
+			BUEntry* bu = new BUEntry(MR_BS);
+			bu->set_mr_bs(eface_agent_, iface_agent_);
+			bu->insert_entry(&bulist_head_);
+			dump();
+			return TCL_OK;
+		}
 	}
 	if (argc==5) 
 	{
@@ -805,6 +815,24 @@ void MIPV6Agent::process_mr_prefix(new_prefix* data) {
 	//----------------sem end------------------//
 	
 	free(data);
+}
+
+void MIPV6Agent::set_mr_bs_prefix(new_prefix* data, double lifetime) {
+	printf("MIPv6Agent::set_mr_bs_prefix\n");
+	
+	BUEntry *bu = get_mr_bs_entry_by_mface(data->interface);
+	assert(bu!=NULL);
+	
+	//	add new prefix to iface nd agent
+	
+	Mac *mac;
+	Tcl& tcl = Tcl::instance();
+	tcl.evalf("%s set mac_(0)",bu->iface()->get_iface()->name());
+	mac = (Mac*) TclObject::lookup(tcl.result());
+	printf("Mac address %s\n", PRINTADDR(mac->addr()));
+	NDAgent *nd_iface = get_nd_by_mac(mac);
+	nd_iface->add_prefix(data->prefix,lifetime);
+	
 }
 
 void MIPV6Agent::dump() {
@@ -2515,6 +2543,19 @@ vector <BUEntry*> MIPV6Agent::get_mr_ha_entry_dead()
 	}
 	return res;
 }
+
+BUEntry* MIPV6Agent::get_mr_bs_entry_by_mface(Node *mface)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_BS && bu->eface()!=NULL && bu->eface()->get_iface()==mface) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+
 
 void MIPV6Agent::re_homing(Node *iface)
 {
