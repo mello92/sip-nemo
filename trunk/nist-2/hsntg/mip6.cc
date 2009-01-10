@@ -126,6 +126,7 @@ MIPV6Agent::MIPV6Agent() : IFMNGMTAgent(), udpmysip_(NULL) {
 //	bind("mr_bs_", &mr_bs_);
 	mr_bs_daddr=-1;
 	LIST_INIT(&bslist_head_);
+	ms_bs_enable=0;
 	
 	exp_mr_=0;
 	flowRequestTimer_ = new FlowRequestTimer (this);
@@ -717,6 +718,9 @@ float MIPV6Agent::get_used_bw() {
  */
 void MIPV6Agent::process_new_prefix(new_prefix* data) {
 	//to be defined by subclass
+	if(!ms_bs_enable){
+		
+
 	//----------------sem start------------------//
 	printf("MIPv6Agent::process_new_prefix\n");
 	compute_new_address (data->prefix, data->interface);
@@ -730,6 +734,9 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 	//----------------sem end------------------//
 	
 	free(data);
+	
+	ms_bs_enable=1;
+	}
 }
 
 /*
@@ -990,6 +997,14 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 					{
 						int prefix = iph->saddr() & 0xFFFFF800;
 						debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
+						
+						if(mr_bs_daddr!=-1)
+						{
+							add_tunnel(p);
+							iph->daddr() = mr_bs_daddr;
+							debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+						}
+						
 						get_iface_agent_by_prefix(prefix)->send_bu_ack(p);
 					}
 				}
@@ -998,6 +1013,14 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 							//	if daddr is MN in the binding list -> forward to MN
 							int prefix = iph->daddr() & 0xFFFFF800;
 							debug("prefix= %s \n", Address::instance().print_nodeaddr(prefix));
+							
+							if(mr_bs_daddr!=-1)
+							{
+								add_tunnel(p);
+								iph->daddr() = mr_bs_daddr;
+								debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+							}
+							
 							Packet* p_tunnel = p->copy();
 							get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 						}
@@ -1024,6 +1047,14 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 					int prefix = iph->daddr() & 0xFFFFF800;
 					debug("prefix=%s \n",Address::instance().print_nodeaddr(prefix));
 //					BUEntry* bu = get_entry_by_prefix(prefix);
+					
+					if(mr_bs_daddr!=-1)
+					{
+						add_tunnel(p);
+						iph->daddr() = mr_bs_daddr;
+						debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+					}
+					
 					Packet* p_tunnel = p->copy();
 					get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 				}
@@ -1740,6 +1771,14 @@ void MIPV6Agent::tunneling(Packet* p)
 					iph->daddr()=iph->daddr();
 					iph->dport()=port();
 					//				iph->saddr()=mr_ha_addr;
+					
+					if(mr_bs_daddr!=-1)
+					{
+						add_tunnel(p);
+						iph->daddr() = mr_bs_daddr;
+						debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+					}
+					
 					Packet* p_tunnel = p->copy();
 					get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
 				}
@@ -1776,6 +1815,10 @@ void MIPV6Agent::tunneling(Packet* p)
 		//	register and send BU
 		
 		BUEntry *bu =  get_entry_by_type(MN_HA);
+		
+		debug("At %f MIPv6 MN iph->saddr() %s bu->eface()->get_iface()->address() %s\n", 
+						NOW, Address::instance().print_nodeaddr(iph->saddr()),
+						Address::instance().print_nodeaddr(bu->eface()->get_iface()->address()));
 		
 		if(iph->saddr()==bu->eface()->get_iface()->address())
 		{
@@ -1840,6 +1883,13 @@ void MIPV6Agent::tunneling(Packet* p)
 			iph->daddr()=prefix;
 			iph->dport()=port();
 			
+			if(mr_bs_daddr!=-1)
+			{
+				add_tunnel(p);
+				iph->daddr() = mr_bs_daddr;
+				debug("tunnling MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+			}
+			
 //			hdrc->size()-=20;
 			
 			Packet* p_tunnel = p->copy();
@@ -1902,6 +1952,13 @@ void MIPV6Agent::tunneling(Packet* p)
 				add_tunnel(p_bu);				
 				bu_iph->daddr() = prefix;
 				
+				if(mr_bs_daddr!=-1)
+				{
+					add_tunnel(p_bu);
+					iph->daddr() = mr_bs_daddr;
+					debug("tunneling MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+				}
+				
 				bu->eface()->send(p_bu,0);
 				debug("At %f MIPv6 MN Agent in %s send BU packet to %s\n", 
 						NOW, MYNUM, Address::instance().print_nodeaddr(bu_iph->daddr()));
@@ -1910,7 +1967,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-//			hdrc->size()+=20;
+			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
@@ -2220,6 +2277,19 @@ void MIPV6Agent::tunneling(Packet* p)
 		debug("MIPv6 MR_BS\n");
 		
 		delete_tunnel(p);
+		
+		BUEntry* bu = get_mr_bs_entry();
+					
+		Packet* p_tunnel = p->copy();
+		
+		if(is_daddr_mr_bs_prefix_(iph->daddr()))
+		{
+			bu->eface()->send(p_tunnel,0);
+		} 
+		else
+		{
+			bu->iface()->send(p_tunnel,0);
+		}
 		
 		debug("At %f MIPv6 MN_BS Agent in %s recv packet to %s from %s\n", 
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()),

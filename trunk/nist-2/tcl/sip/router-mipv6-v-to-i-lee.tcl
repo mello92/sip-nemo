@@ -43,7 +43,9 @@ Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
 #Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
-Agent/MIHUser/IFMNGMT/MIPV6 set exp_mr_ 2
+#	1	:	tunnel-in-tunnel	
+#	2	:	2-tunnel
+Agent/MIHUser/IFMNGMT/MIPV6 set exp_mr_ 1	
 
 #Agent/MIHUser/IFMNGMT/MIPV6 set mr_bs_ 1
 
@@ -247,7 +249,6 @@ if {$quiet == 0} {
 	puts "mr1_ha1: tcl=$mr1_ha1; id=[$mr1_ha1 id]; addr=[$mr1_ha1 node-addr]"
 	puts "mr1_ha2: tcl=$mr1_ha2; id=[$mr1_ha2 id]; addr=[$mr1_ha2 node-addr]"
 	puts "mface0_mr0: tcl=$mface0_mr0; id=[$mface0_mr0 id]; addr=[$mface0_mr0 node-addr]"
-	puts "mface0_mr1: tcl=$mface0_mr1; id=[$mface0_mr1 id]; addr=[$mface0_mr1 node-addr]"
 	puts "mface0_mr1: tcl=$mface0_mr1; id=[$mface0_mr1 id]; addr=[$mface0_mr1 node-addr]"
 	puts "mface0_mr_bs: tcl=$mface0_mr_bs; id=[$mface0_mr_bs id]; addr=[$mface0_mr_bs node-addr]"
 	puts "mr_router: tcl=$mr_router; id=[$mr_router id]; addr=[$mr_router node-addr]"
@@ -566,7 +567,7 @@ if {$quiet == 0} {
 
 
 
-set eface0_mn1 [$ns node 15.0.1]     ;# node id is 8. 
+set eface0_mn1 [$ns node 19.0.1]     ;# node id is 8. 
 $eface0_mn1 random-motion 0		;# disable random motion
 #$eface0_mn1 base-station [AddrParams addr2id [$iface0_mr1 node-addr]] ;#attach mn to basestation
 $eface0_mn1 base-station [AddrParams addr2id [$iface0_mr_bs node-addr]] ;#attach mn to basestation
@@ -908,6 +909,7 @@ $handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 $handover_mr1 set-mface [$mface0_mr1 node-addr] $nemo_mface0_mr1
 
+$handover_mr1 set-mr-bs-daddr 21.0.0
 
 # MR_BS
 #######################
@@ -1158,7 +1160,7 @@ puts " time [expr $moveStart+80]"
 #$handover set-ha 5.0.0 5.0.2
 #$handover set-nemo-prefix 6.0.0
 
-$ns at 60 "$mysipapp_r send_invite 1000 5.0.3"
+$ns at 65 "$mysipapp_r send_invite 1000 5.0.3"
 #$ns at 87 "$mysipapp_s send_invite 9999 5.0.1"
 $ns at [expr $moveStop - 40] "$mysipapp_s dump_handoff_info" 
 
