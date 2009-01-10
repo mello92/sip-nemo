@@ -201,6 +201,49 @@ protected:
 	LIST_ENTRY(BUEntry) link;
 };
 
+//	---------------- sem start ----------------
+/*
+ * BS list
+ * Store information about a neighbor: prefix, lifetime. 
+ */
+class BSEntry;
+
+LIST_HEAD(bs_entry, BSEntry);
+
+class BSEntry {
+public:
+	
+	  int prefix_;            // router prefix
+	  double time_; 	  // lifetime of this entry 
+	  
+	  BSEntry(int prefix, double lifetime)  { //constructor
+	    prefix_ = prefix;	
+	    time_ = lifetime;
+	  }
+	  ~BSEntry() { ; } //destructor
+	  
+	  // Chain element to the list
+	  inline void insert_entry(struct bs_entry *head) {
+	    LIST_INSERT_HEAD(head, this, link);
+	  }
+	  inline void update_entry(double lifetime) {
+	    time_ = lifetime;
+	  }
+	  inline double& lifetime() { return time_; }
+	  // Return the prefix information
+	  inline int& prefix() {return prefix_; }
+	  // Return next element in the chained list
+	  BSEntry* next_entry(void) const { return link.le_next; }
+	  // Remove the entry from the list
+	  inline void remove_entry() { 
+		  LIST_REMOVE(this, link); 
+	  }
+	  
+protected:
+	LIST_ENTRY(BSEntry) link; 
+};
+//	---------------- sem end ----------------
+
 // TunnelEntry
 
 struct tunnel {
@@ -380,10 +423,16 @@ class MIPV6Agent : public IFMNGMTAgent {
   //void process_client_going_down (int); //to remove
   void send_rs (Mac *); //send an RA message for the given interface
   
-  //	muliple router use
+  //----------	muliple router use-------------//
   void process_mr(new_prefix*);
   void set_mr_bs_prefix(new_prefix* data, double lifetime);
   BUEntry* get_mr_bs_entry_by_mface(Node *mface);
+//  int mr_bs_;
+  int mr_bs_daddr;
+  BUEntry* get_mr_bs_entry();
+  void add_mr_bs_prefix(int prefix, double lifetime);
+  bool is_daddr_mr_bs_prefix_(int daddr);
+  
   
   //flow request timer
   FlowRequestTimer *flowRequestTimer_;
@@ -463,6 +512,8 @@ class MIPV6Agent : public IFMNGMTAgent {
 		BUEntry* get_mr_ha_entry_by_iface(Node *iface);
 		BUEntry* get_mr_ha_entry_without_iface(Node *iface);
 		
+		BUEntry* get_mr_ha_entry_by_prefix(int prefix);
+		
 		BUEntry* get_mr_entry_by_prefix(int prefix);
 		BUEntry* get_mr_entry();
 		BUEntry* get_mr_ha_entry_on();
@@ -480,7 +531,10 @@ class MIPV6Agent : public IFMNGMTAgent {
 //		int nemo_prefix_;	// nemo prefix
 		
 		Mipv6NodeType node_type_;
-
+		
+		//----------	muliple router use-------------//
+		struct bs_entry bslist_head_;
+		  
 
 //		Node* iface_node_;
 	 //----------------sem end------------------//

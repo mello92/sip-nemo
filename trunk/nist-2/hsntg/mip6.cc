@@ -120,6 +120,13 @@ MIPV6Agent::MIPV6Agent() : IFMNGMTAgent(), udpmysip_(NULL) {
 //	LIST_INIT(&tunnel_head_);
 //	LIST_INIT(&bslist_head_);
 //	LIST_INIT(&history_head_);
+	
+	//	muliple router use
+//	mr_bs_=0;
+//	bind("mr_bs_", &mr_bs_);
+	mr_bs_daddr=-1;
+	LIST_INIT(&bslist_head_);
+	
 	exp_mr_=0;
 	flowRequestTimer_ = new FlowRequestTimer (this);
 	seqNumberFlowRequest_ = 0;
@@ -209,6 +216,11 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 //				return TCL_ERROR;
 //			return TCL_OK;
 //		}
+		if (strcmp(argv[1], "set-mr-bs-daddr")==0)
+		{
+			mr_bs_daddr = Address::instance().str2addr(argv[2]);
+			return TCL_OK;
+		}
 
 	}
 	if (argc==4) 
@@ -820,6 +832,8 @@ void MIPV6Agent::process_mr_prefix(new_prefix* data) {
 void MIPV6Agent::set_mr_bs_prefix(new_prefix* data, double lifetime) {
 	printf("MIPv6Agent::set_mr_bs_prefix\n");
 	
+	add_mr_bs_prefix(data->prefix,lifetime);
+	
 	BUEntry *bu = get_mr_bs_entry_by_mface(data->interface);
 	assert(bu!=NULL);
 	
@@ -948,7 +962,7 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 	
 					int prefix = iph->saddr() & 0xFFFFF800;
 					
-					bu= get_entry_by_prefix(prefix);
+					bu= get_mr_ha_entry_by_prefix(prefix);
 					
 					assert(bu!=NULL);
 					
@@ -1206,6 +1220,28 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 			recv_bu_ack(p);
 		}
 	}
+	 else if(node_type_==MR_BS) {
+			debug("MIPv6 MR_BS\n");
+			
+			delete_tunnel(p);
+			
+			BUEntry* bu = get_mr_bs_entry();
+						
+			Packet* p_tunnel = p->copy();
+			
+			if(is_daddr_mr_bs_prefix_(iph->daddr()))
+			{
+				bu->eface()->send(p_tunnel,0);
+			} 
+			else
+			{
+				bu->iface()->send(p_tunnel,0);
+			}
+			debug("At %f MIPv6 MR_BS Agent in %s recv BU packet from %s to %s \n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()),
+					Address::instance().print_nodeaddr(iph->daddr()));
+
+		}
 
 }
 
@@ -1407,6 +1443,13 @@ void MIPV6Agent::send_bu_msg(int prefix, Node *iface) {
 
 			add_tunnel(p);				
 			iph->daddr() = prefix;
+			
+			if(mr_bs_daddr!=-1)
+			{
+				add_tunnel(p);
+				iph->daddr() = mr_bs_daddr;
+				debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+			}
 			
 			bu->eface()->send(p,0);
 		
@@ -2173,6 +2216,15 @@ void MIPV6Agent::tunneling(Packet* p)
 		}
 		
 		
+	} else if(node_type_==MR_BS) {
+		debug("MIPv6 MR_BS\n");
+		
+		delete_tunnel(p);
+		
+		debug("At %f MIPv6 MN_BS Agent in %s recv packet to %s from %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()),
+					Address::instance().print_nodeaddr(iph->saddr()));
+		
 	}
 					
 					
@@ -2346,7 +2398,8 @@ int MIPV6Agent::compute_new_address (int prefix, Node *interface)
   //update the new address in the node
   tcl.evalf ("%s addr %s", interface->name(), ns);
   tcl.evalf ("[%s set ragent_] addr %s", interface->name(), ns);
-  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),ps);  
+  if(mr_bs_daddr==-1)
+	  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),ps);  
   //if I update the address, then I also need to update the local route...
   
   delete []os;
@@ -2488,6 +2541,17 @@ BUEntry* MIPV6Agent::get_mr_entry_by_prefix(int prefix)
 	return NULL;
 }
 
+BUEntry* MIPV6Agent::get_mr_ha_entry_by_prefix(int prefix)
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_HA && bu->prefix()==prefix) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
 BUEntry* MIPV6Agent::get_mr_entry()
 {
 	BUEntry *bu =  bulist_head_.lh_first;
@@ -2555,7 +2619,33 @@ BUEntry* MIPV6Agent::get_mr_bs_entry_by_mface(Node *mface)
 	return NULL;
 }
 
+BUEntry* MIPV6Agent::get_mr_bs_entry()
+{
+	BUEntry *bu =  bulist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==MR_BS) {
+			return bu;
+		}
+	}
+	return NULL;
+}
 
+void MIPV6Agent::add_mr_bs_prefix(int prefix, double lifetime)
+{
+	BSEntry *bs = new BSEntry(prefix, lifetime);
+	bs->insert_entry(&bslist_head_);
+}
+
+bool MIPV6Agent::is_daddr_mr_bs_prefix_(int daddr)
+{
+	BSEntry *bs = bslist_head_.lh_first;
+	for(;bs;bs=bs->next_entry()) {
+		if(bs->prefix()==daddr) {
+			return true;
+		}
+	}
+	return false;
+}
 
 void MIPV6Agent::re_homing(Node *iface)
 {

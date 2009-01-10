@@ -45,6 +45,8 @@ Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
 
 Agent/MIHUser/IFMNGMT/MIPV6 set exp_mr_ 2
 
+#Agent/MIHUser/IFMNGMT/MIPV6 set mr_bs_ 1
+
 # seed the default RNG
 global defaultRNG
 if {$argc == 2} {
@@ -566,7 +568,8 @@ if {$quiet == 0} {
 
 set eface0_mn1 [$ns node 15.0.1]     ;# node id is 8. 
 $eface0_mn1 random-motion 0		;# disable random motion
-$eface0_mn1 base-station [AddrParams addr2id [$iface0_mr1 node-addr]] ;#attach mn to basestation
+#$eface0_mn1 base-station [AddrParams addr2id [$iface0_mr1 node-addr]] ;#attach mn to basestation
+$eface0_mn1 base-station [AddrParams addr2id [$iface0_mr_bs node-addr]] ;#attach mn to basestation
 $eface0_mn1 set X_ 200
 $eface0_mn1 set Y_ 170
 $eface0_mn1 set Z_ 0.0
@@ -574,7 +577,8 @@ $eface0_mn1 set Z_ 0.0
 if {$quiet == 0} {
 	puts "eface0_mn1: tcl=$eface0_mn1; id=[$eface0_mn1 id]; addr=[$eface0_mn1 node-addr]"
 }
-[$eface0_mn1 getMac 0] set-channel 5
+#[$eface0_mn1 getMac 0] set-channel 5
+[$eface0_mn1 getMac 0] set-channel 7
 
 #
 #	calculate the speed of the node
@@ -749,7 +753,7 @@ set nd_iface0_mr_bs [$iface0_mr_bs install-nd]
 $nd_iface0_mr_bs set-router TRUE
 $nd_iface0_mr_bs set-mr-bs TRUE
 $nd_iface0_mr_bs router-lifetime 18
-$ns at 5 "$nd_iface0_mr_bs start-ra"
+$ns at 15 "$nd_iface0_mr_bs start-ra"
 
 set nd_mface0_mr_bs [$mface0_mr_bs install-nd]
 $nd_mface0_mr_bs set-mr-bs TRUE
@@ -827,18 +831,20 @@ $nemo_mface0_mr_bs connect-interface $mface0_mr_bs
 
 # MN
 #######################
-#		configure mr 0
+#		configure mn 0
 set mipv6_mn0 [$mn0 install-default-ifmanager]
 $nd_eface0_mn0 set-ifmanager $mipv6_mn0
 $mipv6_mn0 set-node-type $node_type(MN)
 $mipv6_mn0 set-mn 5.0.0 5.0.1 $nemo_eface0_mn0
 
 #######################
-#		configure mr 1
+#		configure mn 1
 set mipv6_mn1 [$mn1 install-default-ifmanager]
 $nd_eface0_mn1 set-ifmanager $mipv6_mn1
 $mipv6_mn1 set-node-type $node_type(MN)
 $mipv6_mn1 set-mn 5.0.0 5.0.2 $nemo_eface0_mn1
+
+$mipv6_mn1 set-mr-bs-daddr 22.0.0
 
 
 # MR
@@ -897,7 +903,7 @@ $handover_mr1 set-node-type $node_type(MR)
 #(1,n,n)
 #$handover_mr1 set-mr 11.0.0 11.0.3 15.0.0 $nemo_iface0_mr1 $nemo_iface0_mr1
 
-$handover_mr1 set-mr 11.0.0 11.0.1 15.0.0 $nemo_eface1_mr1 $nemo_iface0_mr1
+$handover_mr1 set-mr 11.0.0 11.0.1 19.0.0 $nemo_eface1_mr1 $nemo_mface0_mr1
 $handover_mr1 set-mr 12.0.0 11.0.2 101.0.0 $nemo_eface2_mr1 $nemo_iface0_mr1
 
 $handover_mr1 set-mface [$mface0_mr1 node-addr] $nemo_mface0_mr1
