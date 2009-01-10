@@ -51,6 +51,8 @@ UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL), node_type_(SIP_CN), f
 	
 	//---------------muliple router use----------------
 	mr_bs_daddr=-1;
+	exp_mr_ = 0;
+	bind("exp_mr_",&exp_mr_);
 }
 
 int UdpmysipAgent::command(int argc, const char*const* argv) {
@@ -228,7 +230,8 @@ void UdpmysipAgent::sendmsg(int nbytes, const char* flags)
 			ih->prio_ = 15;
 			memcpy(siph, flags, sizeof(hdr_mysip));
 			ih->daddr() = Address::instance().get_nodeaddr(siph->requestURL);
-			ih->saddr() = Address::instance().get_nodeaddr(siph->contact);
+//			ih->saddr() = Address::instance().get_nodeaddr(siph->contact);
+			ih->saddr()=addr();
 			if(!siph->ack)
 			{
 			    ih->dport() = Address::instance().get_nodeaddr(cport_);
@@ -603,6 +606,14 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		{
 			debug("At %f UdpmysipAgent MR in %s recv BU_MR packet from %s\n", 
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
+			
+		}
+		else if(mh->method==11)
+		{
+			debug("At %f UdpmysipAgent MR in %s recv refer packet\n", NOW, MYNUM);
+			registration(p,SIP_CN);
+			dump();
+			ih->prio_ = 14;
 		}
 //		else if(mh->method==1)
 //		{
@@ -703,6 +714,15 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			hdrc->size()-=20;
 			ih->prio_ = 15;
 		}
+		if(mh->method==11)
+		{
+			
+			debug("At %f UdpmysipAgent MN in %s recv refer packet\n", NOW, MYNUM);
+			process_new_prefix(mh->refer);
+			ih->prio_ = 14;
+		}
+		
+		
 	} else if(node_type_ == SIP_CN){
 		if(mh->method==0)
 		{
@@ -993,6 +1013,7 @@ void UdpmysipAgent::show_sipheader(Packet* p)
 				<<" CSeq: "<< msg->CSeq << endl  
 				<<" cip: "<< PRINTADDR(msg->cip) << endl
 				<<" cport: "<< msg->cport << endl
+				<<" refer: " << msg->refer_id <<"@"<< PRINTADDR(msg->refer) << endl
 				<< endl;
 }
 
@@ -1645,6 +1666,21 @@ void UdpmysipAgent::re_homing(Node *iface)
 
 		dump();
 		
+	} else if (exp_mr_!=0) {
+		SIPEntry* bu_break = get_entry_by_iface(iface);
+		SIPEntry* bu_mn = get_entry_by_type(SIP_MN);
+
+		assert(bu_break!=NULL);
+		assert(bu_mn!=NULL);
+
+		bu_break->con()=-1;
+		bu_mn->con()=-1;
+		dump();
+
+		send_refer_to_mn();
+		send_refer_to_mr();
+	
+		
 	} else {
 	SIPEntry* bu_break = get_entry_by_iface(iface);
 	SIPEntry* bu_new = get_entry_without_iface(iface);
@@ -1742,6 +1778,28 @@ SIPEntry* UdpmysipAgent::get_mr_entry_by_prefix(int prefix)
 	return NULL;
 }
 
+SIPEntry* UdpmysipAgent::get_mr_entry()
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+SIPEntry* UdpmysipAgent::get_mn_ha_entry()
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MN_HA) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
 SIPEntry* UdpmysipAgent::get_mr_ha_entry_by_prefix(int prefix)
 {
 	SIPEntry *bu =  siplist_head_.lh_first;
@@ -1755,11 +1813,11 @@ SIPEntry* UdpmysipAgent::get_mr_ha_entry_by_prefix(int prefix)
 
 void UdpmysipAgent::process_mr(int prefix, Node *iface)
 {
-	printf("UdpmysipAgent::process_mr\n");
+	debug("UdpmysipAgent::process_mr\n");
 	SIPEntry* bu = get_mr_entry_by_prefix(iface->address());
 	if(!bu)
 	{
-		printf("UdpmysipAgent_Registration\n");
+		debug("UdpmysipAgent_Registration\n");
 
 		bu = new SIPEntry(SIP_MR);
 		bu->add()= prefix;
@@ -1791,5 +1849,116 @@ void UdpmysipAgent::process_mr(int prefix, Node *iface)
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
 		}
 	}
+}
+
+void UdpmysipAgent::send_refer_to_mn()
+{
+	SIPEntry* bu_mn = get_entry_by_type(SIP_MN);
+	SIPEntry* bu_cn = get_entry_by_type(SIP_CN);
+	SIPEntry* bu_mr = get_mr_entry();
+	
+	Packet *p = allocpkt();
+	hdr_ip *iph = HDR_IP(p);
+	hdr_cmn *hdrc = HDR_CMN(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	
+	mh->ack=1;
+	mh->time=NOW;
+	mh->seq=-2;
+	mh->nbytes=200;
+	mh->method=11;
+	
+	mh->requestURL = bu_cn->con();
+	mh->requestURL_id = bu_cn->con_id();
+	mh->From_id = bu_mn->add_id();
+	mh->From = bu_mn->add();
+	mh->To_id = bu_cn->con_id();
+	mh->To = bu_cn->con();
+	mh->contact_id = bu_mn->add_id();
+	mh->contact = bu_mn->add();
+	mh->cport = 3;
+	mh->refer = bu_mr->add();
+	
+	show_sipheader(p);
+	int prefix = bu_mn->add() & 0xFFFFF800;
+	debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+	
+	iph->saddr()=bu_mr->add();
+	iph->daddr()=bu_mn->add();
+	iph->dport()=port();
+	hdrc->size() = 200;
+	
+	if(mr_bs_daddr!=-1)
+	{
+		mipv6_->add_tunnel(p);
+		iph->daddr() = mr_bs_daddr;
+		iph->dport() = mipv6_->port();
+		debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+	}
+	
+	SIPEntry* bu = get_mr_ha_entry_by_prefix(prefix);
+
+	bu->iface()->send(p,0);
+
+	debug("At %f UdpmysipAgent MR in %s send refer packet to %s\n", 
+			NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+}
+
+void UdpmysipAgent::send_refer_to_mr()
+{
+	SIPEntry* bu_mn = get_entry_by_type(SIP_MN);
+	SIPEntry* bu_cn = get_entry_by_type(SIP_CN);
+	SIPEntry* bu_mr = get_mr_entry();
+	
+	Packet *p = allocpkt();
+	hdr_ip *iph = HDR_IP(p);
+	hdr_cmn *hdrc = HDR_CMN(p);
+	hdr_mysip *mh= HDR_MYSIP(p);
+	
+	mh->ack=1;
+	mh->time=NOW;
+	mh->seq=-2;
+	mh->nbytes=200;
+	mh->method=11;
+	
+	mh->requestURL = bu_mn->add();
+	mh->requestURL_id = bu_mn->add_id();
+	mh->From_id = bu_cn->url_id();
+	mh->From = bu_cn->url();
+	mh->To_id = bu_mn->url_id();
+	mh->To = bu_mn->url();
+	mh->contact_id = bu_cn->con_id();
+	mh->contact = bu_cn->con();
+	mh->cport = 12;
+	mh->refer = bu_mr->add();
+	
+	show_sipheader(p);
+	int prefix = bu_mn->add() & 0xFFFFF800;
+	debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+	
+	iph->saddr()=bu_mr->prefix();
+	iph->daddr()=bu_mr->add();
+	iph->dport()=port();
+	hdrc->size() = 200;
+	
+	SIPEntry* bu = get_mr_ha_entry_by_prefix(prefix);
+
+	bu->iface()->send(p,0);
+
+	debug("At %f UdpmysipAgent MR in %s send refer packet to %s\n", 
+			NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+}
+
+void UdpmysipAgent::process_new_prefix(int prefix)
+{
+	debug("UdpmysipAgent::process_new_prefix\n");
+	SIPEntry* bu = get_mn_ha_entry();
+//	int new_address = mipv6_->compute_new_address(prefix,bu->eface()->get_iface());
+//	Tcl& tcl = Tcl::instance();
+//	
+//	tcl.evalf();
+	int new_address = mipv6_->compute_new_address(prefix,bu->eface()->get_iface());
+	addr() = new_address;
+	send_reg_msg(prefix,bu->eface()->get_iface());
 }
 

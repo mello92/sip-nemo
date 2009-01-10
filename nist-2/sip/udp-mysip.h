@@ -163,6 +163,9 @@ struct hdr_mysip {
 	int CallID;
 	int contact_id;
 	int contact;
+	
+	int refer_id;
+	int refer;
 
 	int cip;
 	int cport;
@@ -209,7 +212,10 @@ public:
 	//--------------muliple router use----------------
 	void process_mr(int prefix, Node *iface);
 	int mr_bs_daddr;
-	
+	int exp_mr_;
+	void send_refer_to_mn();
+	void send_refer_to_mr();
+	void process_new_prefix(int prefix);
 	
 	
 protected:
@@ -263,7 +269,9 @@ private:
 	
 	//	multiple router
 	SIPEntry* get_mr_entry_by_prefix(int prefix);
+	SIPEntry* get_mr_entry();
 	SIPEntry* get_mr_ha_entry_by_prefix(int prefix);
+	SIPEntry* get_mn_ha_entry();
 	
 	
 	asm_mm asm_info; // packet re-assembly information
