@@ -43,6 +43,8 @@ Agent/MIHUser/IFMNGMT/MIPV6/Handover/Handover1 set case_ [lindex $argv 0]
 Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
 #Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 0
 
+Agent/UDP/Udpmysip set exp_mr_ 1
+
 # seed the default RNG
 global defaultRNG
 if {$argc == 2} {
@@ -521,7 +523,7 @@ $eface0_mn0 set Z_ 0.0
 if {$quiet == 0} {
 	puts "eface0_mn0: tcl=$eface0_mn0; id=[$eface0_mn0 id]; addr=[$eface0_mn0 node-addr]"
 }
-[$eface0_mn0 getMac 0] set-channel 2
+[$eface0_mn0 getMac 0] set-channel 11
 
 
 #######################
@@ -1116,7 +1118,7 @@ $udp_r set-mipv6 $mipv6_mn1
 $udp_s set-sip-cn 88 5.0.0 1000 5.0.0
 #######################
 #		configure mr 0
-$udp_mr0 set-sip-mr 88 8.0.0 9999 8.0.0 6.0.0 $nemo_eface1_mr0 $nemo_iface0_mr0
+$udp_mr0 set-sip-mr 88 8.0.0 9999 8.0.0 18.0.0 $nemo_eface1_mr0 $nemo_mface0_mr0
 $udp_mr0 set-sip-mr 88 9.0.0 9998 9.0.0 100.0.0 $nemo_eface2_mr0 $nemo_iface0_mr0
 
 $udp_mr0 set-mface [$mface0_mr0 node-addr] $nemo_mface0_mr0

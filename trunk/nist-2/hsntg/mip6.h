@@ -426,6 +426,8 @@ class MIPV6Agent : public IFMNGMTAgent {
 	void add_tunnel(Packet* p);
 	void delete_tunnel(Packet* p);
 	int size_tunnel(Packet* p);
+	
+	int compute_new_address (int prefix, Node *interface);
   
   //----------	muliple router use-------------//
   void process_mr(new_prefix*);
@@ -525,7 +527,7 @@ class MIPV6Agent : public IFMNGMTAgent {
 		
 		BUEntry* get_entry_by_caddr(int caddr);
 		
-		int compute_new_address (int prefix, Node *interface);
+		
 		
 //		int hoa_;	//	home address
 //		int ha_;		//	home aget address
