@@ -48,6 +48,9 @@ UdpmysipAgent::UdpmysipAgent() : UdpAgent(), mipv6_(NULL), node_type_(SIP_CN), f
 	weight_count = 0;
 	weight_count2 = 0;
 	select_ = 0;
+	
+	//---------------muliple router use----------------
+	mr_bs_daddr=-1;
 }
 
 int UdpmysipAgent::command(int argc, const char*const* argv) {
@@ -89,6 +92,9 @@ int UdpmysipAgent::command(int argc, const char*const* argv) {
 			case SIP_CN:
 				node_type_ = SIP_CN;
 				break;
+			case SIP_MR_BS:
+				node_type_ = SIP_MR_BS;
+				break;
 			default:
 				debug("no match type\n");
 				return TCL_ERROR;
@@ -97,6 +103,11 @@ int UdpmysipAgent::command(int argc, const char*const* argv) {
 			debug("node_type_ %d\n",node_type_);
 			return TCL_OK;
 		}
+		if (strcmp(argv[1], "set-mr-bs-daddr")==0) {
+			mr_bs_daddr = Address::instance().str2addr(argv[2]);
+			return TCL_OK;
+		}
+		
 	}
 	if (argc==4) {
 		if (strcmp(argv[1], "set-mface")==0) {
@@ -250,6 +261,14 @@ void UdpmysipAgent::sendmsg(int nbytes, const char* flags)
 			iph->daddr() = prefix;
 			iph->dport() = port();
 			
+			if(mr_bs_daddr!=-1)
+			{
+				mipv6_->add_tunnel(p);
+				iph->daddr() = mr_bs_daddr;
+				iph->dport() = mipv6_->port();
+				debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+			}
+			
 			SIPEntry* bu = get_entry_by_type(SIP_MN_HA);
 			assert(bu!=NULL);
 			Packet* p_tunnel = p->copy();
@@ -323,7 +342,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			else if(select_==4)
 				bu= get_mr_ha_entry_weight_2();
 			else
-				bu= get_entry_by_prefix(prefix);
+				bu= get_mr_ha_entry_by_prefix(prefix);
 
 			assert(bu!=NULL);
 			
@@ -543,6 +562,13 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				
 				iph->daddr() = bu->add();
 
+				if(mr_bs_daddr!=-1)
+				{
+					mipv6_->add_tunnel(p);
+					iph->daddr() = mr_bs_daddr;
+					iph->dport() = mipv6_->port();
+					debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+				}
 				
 				Packet* p_tunnel = p->copy();
 				get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
@@ -656,7 +682,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==1)
 		{
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv 200ok packet\n", NOW, MYNUM);
 		}
 		if(mh->method==7)
@@ -706,6 +732,11 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			hdrc->size()-=20;
 			ih->prio_ = 15;
 		}
+		
+	}else if(node_type_ == SIP_MR_BS) {
+		debug("At %f UdpmysipAgent SIP_MR_BS in %s recv packet from %s to %s\n", 
+				NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()),
+				Address::instance().print_nodeaddr(iph->daddr()));
 		
 	}
 	//----------------sem end------------------//
@@ -897,6 +928,14 @@ void UdpmysipAgent::send_reg_msg(int prefix, Node *iface)
 			}
 
 			iph->daddr() = prefix;
+			
+			if(mr_bs_daddr!=-1)
+			{
+				mipv6_->add_tunnel(p);
+				iph->daddr() = mr_bs_daddr;
+				iph->dport() = mipv6_->port();
+				debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+			}
 			
 			sip->eface()->send(p,0);
 		
@@ -1504,6 +1543,14 @@ void UdpmysipAgent::send_invite_to_temp_move_pkt(Packet* p)
 		mh_re->contact_id = bu->url_id();
 		mh_re->contact = bu->con();
 		show_sipheader(p_reinvite);
+		
+		if(mr_bs_daddr!=-1)
+		{
+			mipv6_->add_tunnel(p_reinvite);
+			iph_re->daddr() = mr_bs_daddr;
+			iph_re->dport() = mipv6_->port();
+			debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+		}
 
 		bu->eface()->send(p_reinvite,0);
 		
@@ -1689,6 +1736,17 @@ SIPEntry* UdpmysipAgent::get_mr_entry_by_prefix(int prefix)
 	SIPEntry *bu =  siplist_head_.lh_first;
 	for(;bu;bu=bu->next_entry()) {
 		if(bu->type()==SIP_MR && bu->prefix()==prefix) {
+			return bu;
+		}
+	}
+	return NULL;
+}
+
+SIPEntry* UdpmysipAgent::get_mr_ha_entry_by_prefix(int prefix)
+{
+	SIPEntry *bu =  siplist_head_.lh_first;
+	for(;bu;bu=bu->next_entry()) {
+		if(bu->type()==SIP_MR_HA && bu->prefix()==prefix) {
 			return bu;
 		}
 	}

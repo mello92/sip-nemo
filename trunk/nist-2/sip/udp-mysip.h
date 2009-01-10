@@ -20,7 +20,7 @@
 #include "nemo.h"
 
 typedef enum {
-	SIP_MN, SIP_MN_HA, SIP_MR, SIP_MR_HA, SIP_CN
+	SIP_MN, SIP_MN_HA, SIP_MR, SIP_MR_HA, SIP_CN, SIP_MR_BS
 } SipNodeType;
 
 class MEMOAgent;
@@ -206,8 +206,11 @@ public:
 	void send_reg_msg();
 	void re_homing(Node *iface);
 	
-	//	muliple router use
+	//--------------muliple router use----------------
 	void process_mr(int prefix, Node *iface);
+	int mr_bs_daddr;
+	
+	
 	
 protected:
 	int support_mm_; // set to 1 if above is mysipApp
@@ -260,6 +263,7 @@ private:
 	
 	//	multiple router
 	SIPEntry* get_mr_entry_by_prefix(int prefix);
+	SIPEntry* get_mr_ha_entry_by_prefix(int prefix);
 	
 	
 	asm_mm asm_info; // packet re-assembly information

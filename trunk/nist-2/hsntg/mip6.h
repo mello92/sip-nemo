@@ -423,6 +423,10 @@ class MIPV6Agent : public IFMNGMTAgent {
   //void process_client_going_down (int); //to remove
   void send_rs (Mac *); //send an RA message for the given interface
   
+	void add_tunnel(Packet* p);
+	void delete_tunnel(Packet* p);
+	int size_tunnel(Packet* p);
+  
   //----------	muliple router use-------------//
   void process_mr(new_prefix*);
   void set_mr_bs_prefix(new_prefix* data, double lifetime);
@@ -497,9 +501,6 @@ class MIPV6Agent : public IFMNGMTAgent {
 		void recv_bu_ack(Packet* p);
 		void recv_nemo(Packet* p);
 		
-		void add_tunnel(Packet* p);
-		void delete_tunnel(Packet* p);
-		int size_tunnel(Packet* p);
 		  
 		NEMOAgent* get_iface_agent_by_prefix(int prefix);
 		NEMOAgent* get_eface_agent_by_prefix(int prefix);

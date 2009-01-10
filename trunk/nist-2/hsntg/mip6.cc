@@ -837,23 +837,30 @@ void MIPV6Agent::process_mr_prefix(new_prefix* data) {
 }
 
 void MIPV6Agent::set_mr_bs_prefix(new_prefix* data, double lifetime) {
-	printf("MIPv6Agent::set_mr_bs_prefix\n");
 	
-	add_mr_bs_prefix(data->prefix,lifetime);
-	
-	BUEntry *bu = get_mr_bs_entry_by_mface(data->interface);
-	assert(bu!=NULL);
-	
-	//	add new prefix to iface nd agent
-	
-	Mac *mac;
-	Tcl& tcl = Tcl::instance();
-	tcl.evalf("%s set mac_(0)",bu->iface()->get_iface()->name());
-	mac = (Mac*) TclObject::lookup(tcl.result());
-	printf("Mac address %s\n", PRINTADDR(mac->addr()));
-	NDAgent *nd_iface = get_nd_by_mac(mac);
-	nd_iface->add_prefix(data->prefix,lifetime);
-	
+//	if(udpmysip_!=0 )
+//	{
+//		printf("sip enable\n");
+//		udpmysip_->set_mr_bs_prefix(data->prefix, data->interface);
+//		
+//	} else {
+		printf("MIPv6Agent::set_mr_bs_prefix\n");
+			
+		add_mr_bs_prefix(data->prefix,lifetime);
+
+		BUEntry *bu = get_mr_bs_entry_by_mface(data->interface);
+		assert(bu!=NULL);
+
+		//	add new prefix to iface nd agent
+
+		Mac *mac;
+		Tcl& tcl = Tcl::instance();
+		tcl.evalf("%s set mac_(0)",bu->iface()->get_iface()->name());
+		mac = (Mac*) TclObject::lookup(tcl.result());
+		printf("Mac address %s\n", PRINTADDR(mac->addr()));
+		NDAgent *nd_iface = get_nd_by_mac(mac);
+		nd_iface->add_prefix(data->prefix,lifetime);
+//	}
 }
 
 void MIPV6Agent::dump() {
@@ -1967,7 +1974,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-			hdrc->size()+=20;
+//			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
