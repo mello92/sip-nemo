@@ -428,10 +428,11 @@ class MIPV6Agent : public IFMNGMTAgent {
   void set_mr_bs_prefix(new_prefix* data, double lifetime);
   BUEntry* get_mr_bs_entry_by_mface(Node *mface);
 //  int mr_bs_;
-  int mr_bs_daddr;
+  int mr_bs_daddr;	//	use for mn to set bs addr
   BUEntry* get_mr_bs_entry();
   void add_mr_bs_prefix(int prefix, double lifetime);
   bool is_daddr_mr_bs_prefix_(int daddr);
+  int ms_bs_enable;	//	use for mn to get only one address
   
   
   //flow request timer
