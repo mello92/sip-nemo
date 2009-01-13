@@ -216,6 +216,8 @@ public:
 	void send_refer_to_mn();
 	void send_refer_to_mr();
 	void process_new_prefix(int prefix);
+	void mr_send_reinvite_to_cn(Packet* p);
+	SIPEntry* get_mr_ha_entry_active();
 	
 	
 protected:

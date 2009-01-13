@@ -326,6 +326,10 @@ void mysipApp::recv_msg(int nbytes, const char *msg)
 		cout << "***********sipA::recv Rehoming**************\n";
 		set_contact(sip_buf);
 	}
+	else if (sip_buf->method==12) {
+			cout << "***********sipA::recv reinvite**************\n";
+			set_contact(sip_buf);
+		}
     }
     else {
       // If received packet is invite packet
