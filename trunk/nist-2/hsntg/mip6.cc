@@ -1097,6 +1097,9 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 			
 			nh->coa() = bu->haddr();
 			iph->saddr() = bu->caddr();
+			
+			if(exp_mr_==4)
+				iph->saddr() = bu->addr();
 
 			//	tunnel packet to MR-HA
 			add_tunnel(p);
@@ -1679,7 +1682,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			{
 				
 				//-------------------------use in multiple router tunnel start-----------------------
-				if( exp_mr_==3 )
+				if( exp_mr_==3 || exp_mr_==4 )
 				{
 					int prefix = iph->daddr() & 0xFFFFF800;
 					debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
@@ -1689,9 +1692,7 @@ void MIPV6Agent::tunneling(Packet* p)
 						add_tunnel(p);
 						iph->daddr() = bu->addr();
 						iph->dport() = port();
-						add_tunnel(p);
-						iph->daddr() = mr_bs_daddr;
-						iph->dport() = port();
+						
 						debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
 
 						Packet* p_tunnel = p->copy();
@@ -1710,7 +1711,7 @@ void MIPV6Agent::tunneling(Packet* p)
 				
 				bu = get_entry_by_addr(iph->saddr());
 				
-				if(exp_mr_==1 || exp_mr_==3)
+				if(exp_mr_==1 || exp_mr_==3 || exp_mr_==4)
 				{
 					// exp_mr_==1  multiple router operation tunnel-in-tunnel
 					
@@ -2294,7 +2295,7 @@ void MIPV6Agent::tunneling(Packet* p)
 								Address::instance().print_nodeaddr(mr_ha_addr),
 								Address::instance().print_nodeaddr(saddr));
 			iph->saddr()=mr_ha_addr;
-			if(exp_mr_==3)
+			if(exp_mr_==3 || exp_mr_==4)
 			{
 				nh->haddr()=nh->coa();
 				nh->coa()=saddr;
@@ -2840,7 +2841,7 @@ void MIPV6Agent::re_homing(Node *iface)
 		bu_mn->caddr()=bu_mr->addr();
 		dump();
 		
-		if(exp_mr_==3)
+		if(exp_mr_==3 || exp_mr_==4)
 		{
 			//	recover to break MR_HA
 			
