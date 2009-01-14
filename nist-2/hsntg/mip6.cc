@@ -1074,6 +1074,40 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
 
 		}
+		else if (nh->type()==REHOME_MR_HA) 
+		{
+			delete_tunnel(p);
+			registration(p,MN);
+			dump();
+			
+			//	choise mn entry
+			BUEntry* mn = get_entry_by_haddr(nh->haddr());
+
+			int prefix = iph->saddr() & 0xFFFFF800;
+
+			BUEntry* bu= get_mr_ha_entry_by_prefix(prefix);
+
+			assert(bu!=NULL);
+
+			//	change mn entry coa to outside coa
+			//	change mn entry eface to outdise eface
+			mn->caddr() = bu->caddr();
+			mn->eface_agent_ = bu->eface_agent_;
+			dump();
+			
+			nh->coa() = bu->haddr();
+			iph->saddr() = bu->caddr();
+
+			//	tunnel packet to MR-HA
+			add_tunnel(p);
+			iph->daddr()=bu->addr();
+
+			Packet* p_tunnel = p->copy();
+			bu->eface()->send(p_tunnel,0);
+
+			debug("At %f MIPv6 MR Agent in %s send REHOME_MR_HA packet to %s \n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+		}
 	} 
 	else if (node_type_==MR_HA)
 	{
@@ -1195,6 +1229,32 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 //								{
 //									send_bu_ack(p);
 //								}
+		}else if (nh->type()==REHOME_MR_HA)
+		{
+			delete_tunnel(p);
+			
+			if(iph->daddr()==addr())
+			{
+				BUEntry* bu = get_entry_by_haddr(nh->haddr());
+				assert(bu!=NULL);
+				bu->caddr()=nh->coa();
+
+				nh->haddr()=nh->coa();
+				nh->coa()=iph->saddr();
+				registration(p, MR);
+				dump();
+				debug("At %f MIPv6 MR_HA Agent in %s recv REHOME_MR_HA packet from %s \n", 
+									NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
+				
+			}else{
+				add_tunnel(p);
+				
+				//	daddr is other node
+				Packet* p_copy = p->copy();
+				send(p_copy,0);
+				debug("At %f MIPv6 MR_HA Agent in %s send REHOME_MR_HA packet to %s \n", 
+						NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			}
 		}
 		
 	}
@@ -1617,11 +1677,40 @@ void MIPV6Agent::tunneling(Packet* p)
 			BUEntry* bu = get_entry_by_addr(iph->daddr());
 			if(!bu)
 			{
+				
+				//-------------------------use in multiple router tunnel start-----------------------
+				if( exp_mr_==3 )
+				{
+					int prefix = iph->daddr() & 0xFFFFF800;
+					debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
+					bu = get_mr_entry();
+					if(bu->addr()==prefix)
+					{
+						add_tunnel(p);
+						iph->daddr() = bu->addr();
+						iph->dport() = port();
+						add_tunnel(p);
+						iph->daddr() = mr_bs_daddr;
+						iph->dport() = port();
+						debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+
+						Packet* p_tunnel = p->copy();
+						bu->iface()->send(p_tunnel,0);
+						
+						debug("At %f MIPv6 MR Agent in %s tunnel packet to other MR %s\n", 
+										NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+						Packet::free(p);
+						return;
+					}
+				}
+				//-------------------------use in multiple router tunnel end-----------------------
+				
+				
 				//	daddr search by caddr is not in binding table 
 				
 				bu = get_entry_by_addr(iph->saddr());
 				
-				if(exp_mr_==1)
+				if(exp_mr_==1 || exp_mr_==3)
 				{
 					// exp_mr_==1  multiple router operation tunnel-in-tunnel
 					
@@ -1662,7 +1751,7 @@ void MIPV6Agent::tunneling(Packet* p)
 							BUEntry* out = get_mr_ha_entry_by_caddr(bu->caddr());
 							
 							iph->saddr()=out->haddr();
-			//				nh->coa()=out->haddr();
+							nh->coa()=out->haddr();	// in multiple router
 							add_tunnel(p);
 							
 							iph->daddr() = out->addr();
@@ -2194,12 +2283,23 @@ void MIPV6Agent::tunneling(Packet* p)
 			//	register if mn not in the binding table 
 			int mr_ha_addr=iph->saddr();
 			delete_tunnel(p);
+			
+			//	add in -- multihple router
+			if(size_tunnel(p)>0)
+					delete_tunnel(p);
+			
 			int saddr=iph->saddr();
 			
 			debug("mr_ha_addr %s saddr %s\n", 
 								Address::instance().print_nodeaddr(mr_ha_addr),
 								Address::instance().print_nodeaddr(saddr));
 			iph->saddr()=mr_ha_addr;
+			if(exp_mr_==3)
+			{
+				nh->haddr()=nh->coa();
+				nh->coa()=saddr;
+			}
+			
 			BUEntry* bu = get_entry_by_addr(iph->saddr());
 			if(!bu)
 			{
@@ -2740,6 +2840,42 @@ void MIPV6Agent::re_homing(Node *iface)
 		bu_mn->caddr()=bu_mr->addr();
 		dump();
 		
+		if(exp_mr_==3)
+		{
+			//	recover to break MR_HA
+			
+			Packet *p = allocpkt();
+			hdr_ip *iph = HDR_IP(p);
+			hdr_cmn *hdrc = HDR_CMN(p);
+			hdr_nemo *nh = HDR_NEMO(p);
+			
+			nh->coa()=bu_mr->addr();
+			nh->haddr()=bu_break->haddr();
+			nh->H()=ON;
+			nh->A()=ON;
+			nh->type()= REHOME_MR_HA;
+
+			iph->saddr()=bu_mr->addr();
+			iph->daddr()=bu_break->addr();
+			iph->dport()=port();
+			hdrc->ptype()=PT_NEMO;
+			hdrc->size()= IPv6_HEADER_SIZE + BU_SIZE;
+			
+			debug("At %f MIPv6 MR  in %s re_homing to %s\n", 
+							NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+			
+			add_tunnel(p);
+			iph->daddr() = bu_mr->addr();
+			
+			add_tunnel(p);
+			iph->daddr() = mr_bs_daddr;
+			
+			bu_mr->iface()->send(p,0);
+			
+
+
+		}
+		
 	} else {
 		BUEntry* bu_break = get_mr_ha_entry_by_iface(iface);
 		BUEntry* bu_new = get_mr_ha_entry_without_iface(iface);
@@ -2821,4 +2957,3 @@ void MIPV6Agent::re_homing(Node *iface)
 //	tcl.evalf("%s target [%s entry]", this->name(), bu_new->eface()->get_iface()->name());
 	//}
 }
-
