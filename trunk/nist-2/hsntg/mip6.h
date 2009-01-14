@@ -75,7 +75,7 @@ typedef enum {
 
 typedef enum {
 	BREQ, BU, BACK, REHOME, BU_HA, BU_BS, BU_CN, BU_RP, BU_MN,
-	BS_ADS, BS_SOL, BU_MR
+	BS_ADS, BS_SOL, BU_MR, REHOME_MR_HA
 } Mipv6RegType;
 
 /****************************************
