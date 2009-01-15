@@ -428,6 +428,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 					dump();
 				}
 				
+				
 				bu = get_entry_by_url_id(mh->To_id);
 
 				assert(bu!=NULL);
@@ -525,7 +526,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			//send_temp_move_nemo(p);
 			ih->prio_ = 14;
 		}
-		else if(mh->method==1 || mh->method==6)
+		else if(mh->method==1 )
 		{
 			
 				SIPEntry* cn = get_entry_by_url_id(mh->To_id);
@@ -624,6 +625,11 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			dump();
 			ih->prio_ = 14;
 		}
+		else if(mh->method==6)
+		{
+			send_invite_to_temp_move_pkt(p);
+			ih->prio_ = 14;
+		}
 //		else if(mh->method==1)
 //		{
 //			//SIPEntry* bu = get_entry_by_url_id(iph->daddr());
@@ -702,7 +708,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==1)
 		{
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv 200ok packet\n", NOW, MYNUM);
 		}
 		if(mh->method==7)
@@ -735,7 +741,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 	} else if(node_type_ == SIP_CN){
 		if(mh->method==0)
 		{
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent CN in %s recv invite packet\n", NOW, MYNUM);
 		}
 		if(mh->method==6)
@@ -752,7 +758,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==7)
 		{
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 		}
 		if(mh->method==9)
 		{
@@ -1589,10 +1595,43 @@ void UdpmysipAgent::send_invite_to_temp_move_pkt(Packet* p)
 
 		bu->eface()->send(p_reinvite,0);
 		
-		debug("At %f UdpmysipAgent MN in %s send invite packet to %s\n", 
+		debug("At %f UdpmysipAgent MN in %s send invite packet to tempory move %s\n", 
 		NOW, MYNUM, Address::instance().print_nodeaddr(iph_re->daddr()));
 		
-	} else {
+	} else if (node_type_==SIP_MR)
+	{
+		SIPEntry* bu = get_mn_entry_by_url_id(mh->From_id);
+		Packet* p_reinvite = allocpkt();
+		hdr_ip *iph_re = HDR_IP(p_reinvite);
+		hdr_mysip *mh_re = HDR_MYSIP(p_reinvite);
+		hdr_cmn *hdrc_re = HDR_CMN(p_reinvite);
+
+		memcpy(iph_re,iph,sizeof(hdr_ip));
+		memcpy(mh_re,mh,sizeof(hdr_mysip));
+
+		iph_re->daddr() = mh->contact;
+		iph_re->dport() = port();
+		iph_re->saddr() = bu->con();
+		hdrc_re->size() = 120;
+
+		mh_re->method = 0;
+
+		mh_re->requestURL_id = mh->contact_id;
+		mh_re->requestURL = mh->contact;
+
+		mh_re->contact_id = bu->url_id();
+		mh_re->contact = bu->con();
+		show_sipheader(p_reinvite);
+		
+		int prefix = bu->add() & 0xFFFFF800;
+		debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+		bu = get_mr_ha_entry_by_prefix(prefix);
+		bu->eface()->send(p_reinvite,0);
+		
+		debug("At %f UdpmysipAgent MR in %s send invite packet to tempory move %s\n", 
+		NOW, MYNUM, Address::instance().print_nodeaddr(iph_re->daddr()));
+		
+	}else{
 		
 	iph->daddr()=mh->contact;
 	iph->dport()=port();
@@ -1611,7 +1650,7 @@ void UdpmysipAgent::send_invite_to_temp_move_pkt(Packet* p)
 		Packet* p_invite = p->copy();
 		send(p_invite,0);
 		
-		debug("At %f UdpmysipAgent MN in %s send invite packet to %s\n", 
+		debug("At %f UdpmysipAgent MN in %s send invite packet to tempory move %s\n", 
 		NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 	}
 
