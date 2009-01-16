@@ -352,6 +352,7 @@ class NDAgent : public Agent {
   Entry* get_mr_bs_entry_random();
 //  void add_mr_bs(int prefix, double lifetime);
   Entry* add_prefix(int, double);
+  void send_ads(int);          //Send a RA
 	 //-----------------sem end------------------
   
  protected:
@@ -399,7 +400,7 @@ class NDAgent : public Agent {
   int remove_ra_target (int);  //Remove target for RAs
   int add_rs_target (int);     //Add target for RSs
   int remove_rs_target (int);  //Remove target for RSs
-  void send_ads(int);          //Send a RA
+  
   void recv_ads(Packet *);     //Process RA
   void send_rs(int);           //Send RS
   void recv_rs(Packet *);      //Process RS

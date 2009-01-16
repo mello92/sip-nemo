@@ -259,6 +259,18 @@ int MIPV6Agent::command(int argc, const char*const* argv) {
 	}
 	if (argc==5) 
 	{
+		if (strcmp(argv[1], "set-mface")==0) 
+		{
+			int neighor_mr = Address::instance().str2addr(argv[2]);	// mface address
+			int nemo_prefix_ = Address::instance().str2addr(argv[3]);	// mface address
+			NEMOAgent *iface_agent_ = (NEMOAgent *)TclObject::lookup(argv[4]);		// mface nemo agent
+			BUEntry* bu = new BUEntry(MR);
+			bu->set_mface_2(neighor_mr, nemo_prefix_, iface_agent_);
+			bu->insert_entry(&bulist_head_);
+			dump();
+			return TCL_OK;
+		}
+		
 		if (strcmp(argv[1], "set-mn")==0) 
 		{
 			int ha_ = Address::instance().str2addr(argv[2]);														//	home agent address
@@ -1070,6 +1082,29 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 		}
 		else if (nh->type()==BU_MR) 
 		{
+			BUEntry* bu_mr = get_mr_entry();
+			if(bu_mr->addr()==-1)
+			{
+				bu_mr->addr() = iph->saddr();
+				dump();
+				Packet *p = allocpkt();
+				hdr_ip *iph = HDR_IP(p);
+				hdr_cmn *hdrc = HDR_CMN(p);
+				hdr_nemo *nh = HDR_NEMO(p);
+
+				nh->type() = BU_MR;
+				iph->daddr() = bu_mr->haddr();
+				iph->dport() = port();
+				iph->saddr() = bu_mr->prefix();
+				hdrc->ptype() = PT_NEMO;
+				hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+
+				bu_mr->iface()->send(p,0);
+
+				debug("At %f MIPv6 Agent in %s send BU_MR by %s \n", 
+						NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
+			}
+			
 			debug("At %f MIPv6 Agent in %s recv BU_MR packet from %s \n", 
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
 
@@ -1711,7 +1746,17 @@ void MIPV6Agent::tunneling(Packet* p)
 				
 				bu = get_entry_by_addr(iph->saddr());
 				
-				if(exp_mr_==1 || exp_mr_==3 || exp_mr_==4)
+				if(bu==NULL)
+				{
+					debug("MR descard packets from %s to %s\n",
+							Address::instance().print_nodeaddr(iph->saddr()),
+							Address::instance().print_nodeaddr(iph->daddr()));
+					
+					Packet::free(p);
+					return;
+				}
+				
+				if(exp_mr_==1 || exp_mr_==3 || exp_mr_==4 || exp_mr_==6 )
 				{
 					// exp_mr_==1  multiple router operation tunnel-in-tunnel
 					
@@ -1734,6 +1779,15 @@ void MIPV6Agent::tunneling(Packet* p)
 						if( bu->caddr()!=bu->eface()->get_iface()->address() ) {
 							//	send by mface
 							BUEntry* mr = get_mr_entry();
+							if(mr->addr()==-1)
+							{
+								debug("MR descard packets from %s to %s\n",
+															Address::instance().print_nodeaddr(iph->saddr()),
+															Address::instance().print_nodeaddr(iph->daddr()));
+								
+								Packet::free(p);
+								return;
+							}
 							BUEntry* out_old = get_mr_ha_entry_off();
 							add_tunnel(p);
 							iph->daddr()= out_old->addr();
@@ -1752,7 +1806,9 @@ void MIPV6Agent::tunneling(Packet* p)
 							BUEntry* out = get_mr_ha_entry_by_caddr(bu->caddr());
 							
 							iph->saddr()=out->haddr();
-							nh->coa()=out->haddr();	// in multiple router
+							if(exp_mr_==3 || exp_mr_==4)
+								nh->coa()=out->haddr();	// in multiple router
+							
 							add_tunnel(p);
 							
 							iph->daddr() = out->addr();
@@ -1763,7 +1819,7 @@ void MIPV6Agent::tunneling(Packet* p)
 					}
 					
 				}
-				else if(exp_mr_==2)
+				else if(exp_mr_==2 || exp_mr_==5)
 				{
 					// exp_mr_==2  multiple router operation 2-tunnel
 					
@@ -1790,6 +1846,15 @@ void MIPV6Agent::tunneling(Packet* p)
 						if( bu->caddr()!=bu->eface()->get_iface()->address() ) {
 							//	send by mface
 							BUEntry* mr = get_mr_entry();
+							if(mr->addr()==-1)
+							{
+								debug("MR descard packets from %s to %s\n",
+										Address::instance().print_nodeaddr(iph->saddr()),
+										Address::instance().print_nodeaddr(iph->daddr()));
+
+								Packet::free(p);
+								return;
+							}
 //							BUEntry* out_old = get_mr_ha_entry_off();
 //							add_tunnel(p);
 //							iph->daddr()= out_old->addr();
@@ -2064,7 +2129,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-//			hdrc->size()+=20;
+			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
@@ -2304,36 +2369,39 @@ void MIPV6Agent::tunneling(Packet* p)
 			BUEntry* bu = get_entry_by_addr(iph->saddr());
 			if(!bu)
 			{
-				registration(p,MN);
-				dump();
-				bu = get_entry_by_type(MN_HA);
-				Packet* p_bu = allocpkt();
-				hdr_ip *bu_iph = HDR_IP(p_bu);
-				hdr_cmn *bu_hdrc= HDR_CMN(p_bu);
-				hdr_nemo *bu_nh= HDR_NEMO(p_bu);
-				bu_nh->coa() = addr();
-				bu_nh->haddr() = bu->haddr();	
-				bu_nh->H()=ON;
-				bu_nh->A()=ON;
-				bu_nh->type()=BU;
-				bu_nh->lifetime()=TIME_INFINITY;
-				bu_nh->seqno()=0;
-								
-				bu_iph->saddr() = addr();
-				bu_iph->sport() = port();
-				bu_iph->daddr()= saddr;
-				bu_iph->dport() = port();
-				bu_hdrc->ptype() = PT_NEMO;
-				bu_hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
-				
-				add_tunnel(p_bu);				
-				bu_iph->daddr() = iph->saddr();
-				
-				send(p_bu,0);
+				bu = get_entry_by_caddr(saddr);
+				if(!bu)
+				{
+					registration(p,MN);
+					dump();
+					bu = get_entry_by_type(MN_HA);
+					Packet* p_bu = allocpkt();
+					hdr_ip *bu_iph = HDR_IP(p_bu);
+					hdr_cmn *bu_hdrc= HDR_CMN(p_bu);
+					hdr_nemo *bu_nh= HDR_NEMO(p_bu);
+					bu_nh->coa() = addr();
+					bu_nh->haddr() = bu->haddr();	
+					bu_nh->H()=ON;
+					bu_nh->A()=ON;
+					bu_nh->type()=BU;
+					bu_nh->lifetime()=TIME_INFINITY;
+					bu_nh->seqno()=0;
 
-				debug("At %f MIPv6 CN Agent in %s send BU packet to %s\n", 
-						NOW, MYNUM, Address::instance().print_nodeaddr(bu_iph->daddr()));
-				
+					bu_iph->saddr() = addr();
+					bu_iph->sport() = port();
+					bu_iph->daddr()= saddr;
+					bu_iph->dport() = port();
+					bu_hdrc->ptype() = PT_NEMO;
+					bu_hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+
+					add_tunnel(p_bu);				
+					bu_iph->daddr() = iph->saddr();
+
+					send(p_bu,0);
+
+					debug("At %f MIPv6 CN Agent in %s send BU packet to %s\n", 
+							NOW, MYNUM, Address::instance().print_nodeaddr(bu_iph->daddr()));
+				}
 			}
 			
 			iph->daddr()=addr();
@@ -2872,9 +2940,36 @@ void MIPV6Agent::re_homing(Node *iface)
 			iph->daddr() = mr_bs_daddr;
 			
 			bu_mr->iface()->send(p,0);
+
+		}
+		
+		if(exp_mr_==5 || exp_mr_==6)
+		{
+//			BUEntry* bu = get_mr_entry();
+//			Mac *mac;
+//			Tcl& tcl = Tcl::instance();
+//			tcl.evalf("%s set mac_(0)",bu->iface()->get_iface()->name());
+//			mac = (Mac*) TclObject::lookup(tcl.result());
+//			printf("Mac address %s\n", PRINTADDR(mac->addr()));
+//			NDAgent *nd_iface = get_nd_by_mac(mac);
+//			nd_iface->send_ads(bu->addr());
 			
+			Packet *p = allocpkt();
+			hdr_ip *iph = HDR_IP(p);
+			hdr_cmn *hdrc = HDR_CMN(p);
+			hdr_nemo *nh = HDR_NEMO(p);
 
+			nh->type() = BU_MR;
+			iph->daddr() = bu_mr->haddr();
+			iph->dport() = port();
+			iph->saddr() = bu_mr->prefix();
+			hdrc->ptype() = PT_NEMO;
+			hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
 
+			bu_mr->iface()->send(p,0);
+			
+			debug("At %f MIPv6 Agent in %s send BU_MR by %s \n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
 		}
 		
 	} else {
