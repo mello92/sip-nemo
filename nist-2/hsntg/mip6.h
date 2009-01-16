@@ -161,6 +161,13 @@ public:
 		nemo_prefix_ = nemo_prefix;
 		iface_agent_ = iface_agent;
 	}
+	inline void set_mface_2(int neighor_mr, int nemo_prefix, NEMOAgent *iface_agent)
+	{
+		haddr_ = neighor_mr;
+		nemo_prefix_ = nemo_prefix;
+		iface_agent_ = iface_agent;
+	}
+	
 	inline void set_mr_bs(NEMOAgent *eface_agent, NEMOAgent *iface_agent)
 	{
 		eface_agent_ = eface_agent;
