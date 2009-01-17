@@ -630,6 +630,37 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			send_invite_to_temp_move_pkt(p);
 			ih->prio_ = 14;
 		}
+		else if(mh->method==12)
+		{
+			debug("At %f UdpmysipAgent MR in %s recv reinvite packet\n", NOW, MYNUM);
+			SIPEntry* cn = get_cn_entry_by_url_id(mh->To_id);
+			SIPEntry* mn = get_mn_entry_by_url_id(mh->From_id);
+			
+			assert(cn!=NULL);
+			assert(mn!=NULL);
+			
+			cn->con()= mh->contact;
+			dump();
+			
+			int prefix = mn->add() & 0xFFFFF800;
+
+			debug("prefix=%s\n",Address::instance().print_nodeaddr(prefix));
+
+			iph->daddr() = mn->add();
+							
+			if(mr_bs_daddr!=-1)
+			{
+				mipv6_->add_tunnel(p);
+				iph->daddr() = mr_bs_daddr;
+				iph->dport() = mipv6_->port();
+				debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+			}
+							
+			Packet* p_tunnel = p->copy();
+			get_iface_agent_by_prefix(prefix)->send(p_tunnel,0);
+			
+			ih->prio_ = 14;
+		}
 //		else if(mh->method==1)
 //		{
 //			//SIPEntry* bu = get_entry_by_url_id(iph->daddr());
@@ -736,7 +767,12 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 			process_new_prefix(mh->refer);
 			ih->prio_ = 14;
 		}
-		
+		if(mh->method==12)
+		{
+			debug("At %f UdpmysipAgent MN in %s recv reinvite packet\n", NOW, MYNUM);
+			hdrc->size()-=20;
+			ih->prio_ = 15;
+		}
 		
 	} else if(node_type_ == SIP_CN){
 		if(mh->method==0)
@@ -2034,7 +2070,7 @@ void UdpmysipAgent::mr_send_reinvite_to_cn(Packet* p)
 	show_sipheader(p_cn);
 
 	iph_cn->saddr()=bu->con();
-	iph_cn->daddr()=mh_cn->From;
+	iph_cn->daddr()=mh->contact;
 	iph_cn->dport()=port();
 
 	hdrc_cn->size()=200;
