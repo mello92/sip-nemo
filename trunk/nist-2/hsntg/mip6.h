@@ -447,6 +447,10 @@ class MIPV6Agent : public IFMNGMTAgent {
   bool is_daddr_mr_bs_prefix_(int daddr);
   int ms_bs_enable;	//	use for mn to get only one address
   
+  //-----------binding---------
+  void mn_send_bu_cn();
+  int mn_flag;
+  
   
   //flow request timer
   FlowRequestTimer *flowRequestTimer_;

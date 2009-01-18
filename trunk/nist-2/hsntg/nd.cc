@@ -378,6 +378,7 @@ void NDAgent::send_ads( int daddr)
 			//MAC 802.11 allows ip broadcast but not ethernet.TBD
 			iph->daddr() = daddr;
 			iph->dport() = port();
+			iph->saddr() = addr();
 			hdrc->ptype() = PT_RADS;
 			hdrc->size() = PT_RADS_SIZE;
 
@@ -560,6 +561,7 @@ void NDAgent::recv_ads(Packet *p)
       data->interface=(Node *) TclObject::lookup(tcl.result());
       data->prefix=rh->prefix();
       //----------------	sem start ---------------- 
+      data->bs_addr	= iph->saddr();
       if(mr_bs){
     	  if (useAdvInterval_)
     		  iMngmnt_->set_mr_bs_prefix(data, timer_lifetime);
