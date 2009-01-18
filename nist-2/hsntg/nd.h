@@ -123,6 +123,9 @@ struct hdr_rtsol {
 struct new_prefix {
   int prefix;      //the new prefix
   Node *interface; //the interface (the node)
+  //	---------------- sem start ----------------
+  int bs_addr;
+  //	---------------- sem end ----------------
 };
 
 /*

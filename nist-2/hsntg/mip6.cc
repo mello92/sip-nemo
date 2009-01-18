@@ -128,6 +128,9 @@ MIPV6Agent::MIPV6Agent() : IFMNGMTAgent(), udpmysip_(NULL) {
 	LIST_INIT(&bslist_head_);
 	ms_bs_enable=0;
 	
+	//	binding
+	mn_flag = 0;
+	
 	exp_mr_=0;
 	flowRequestTimer_ = new FlowRequestTimer (this);
 	seqNumberFlowRequest_ = 0;
@@ -732,7 +735,10 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 	//to be defined by subclass
 	if(!ms_bs_enable){
 		
-
+		debug("At %f MIPv6 Agent in %s recv new prefix from %s \n", 
+				NOW, MYNUM, Address::instance().print_nodeaddr(data->bs_addr));
+		mr_bs_daddr = data->bs_addr;
+		
 	//----------------sem start------------------//
 	printf("MIPv6Agent::process_new_prefix\n");
 	compute_new_address (data->prefix, data->interface);
@@ -741,13 +747,20 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 		printf("sip enable\n");
 		udpmysip_->send_reg_msg(data->prefix, data->interface);
 	}
-	else	
+	else	 
+	{
 		send_bu_msg(data->prefix, data->interface);
+		mn_send_bu_cn();
+	}
 	//----------------sem end------------------//
 	
 	free(data);
 	
 	ms_bs_enable=1;
+	
+	if(exp_mr_==9)
+		ms_bs_enable=0;
+	
 	}
 }
 
@@ -1201,6 +1214,35 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 			debug("At %f MIPv6 MR Agent in %s send BU_MR_HA packet to %s \n", 
 					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 		}
+		else if (nh->type()==BU_MN)
+		{
+			delete_tunnel(p);
+			BUEntry* bu_mn = get_entry_by_haddr(nh->haddr());
+			if(!bu_mn)
+			{
+				registration(p,MN);
+				dump();
+			}
+								
+			BUEntry* bu_cn = new BUEntry(MN);
+			bu_cn->addr() = iph->daddr();
+			bu_cn->insert_entry(&bulist_head_);
+			
+			BUEntry* bu = get_mr_ha_entry_on();
+			
+			iph->saddr() = bu->addr();
+
+			//	tunnel packet to MR-HA
+			add_tunnel(p);
+			iph->daddr()=bu->addr();
+
+			Packet* p_tunnel = p->copy();
+			bu->eface()->send(p_tunnel,0);
+
+			debug("At %f MIPv6 Agent in %s tunnel nemo packet to %s\n", 
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+		}
+		
 	} 
 	else if (node_type_==MR_HA)
 	{
@@ -1348,6 +1390,11 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 				debug("At %f MIPv6 MR_HA Agent in %s send REHOME_MR_HA packet to %s \n", 
 						NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 			}
+		}else if (nh->type()==BU_MN)
+		{
+			delete_tunnel(p);
+			Packet* p_copy = p->copy();
+			send(p_copy,0);
 		}
 		
 	}
@@ -1390,6 +1437,8 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 		{
 			recv_bu_ack(p);
 		}
+		
+		
 	}
 	else if (node_type_==CN)
 	{
@@ -1406,9 +1455,20 @@ void MIPV6Agent::recv_nemo(Packet* p) {
 			{
 				send_bu_ack(p);
 			}
-		} else if (nh->type()==BACK) 
+		} 
+		else if (nh->type()==BACK) 
 		{
 			recv_bu_ack(p);
+		}
+		else if (nh->type()==BU_MN)
+		{
+			BUEntry* bu_mn = get_entry_by_type(MN);
+			bu_mn->addr() = iph->saddr();
+			bu_mn->caddr()= nh->coa();
+			dump();
+			
+			debug("At %f MIPv6 MN Agent in %s recv BU_MN packet from %s\n",
+					NOW, MYNUM, Address::instance().print_nodeaddr(iph->saddr()));
 		}
 	}
 	 else if(node_type_==MR_BS) {
@@ -1811,7 +1871,7 @@ void MIPV6Agent::tunneling(Packet* p)
 					return;
 				}
 				
-				if(exp_mr_==1 || exp_mr_==3 || exp_mr_==4 || exp_mr_==6 || exp_mr_==7 || exp_mr_==8)
+				if(exp_mr_==1 || exp_mr_==3 || exp_mr_==4 || exp_mr_==6 || exp_mr_==7 || exp_mr_==8 || exp_mr_==9)
 				{
 					// exp_mr_==1  multiple router operation tunnel-in-tunnel
 					
@@ -2109,7 +2169,7 @@ void MIPV6Agent::tunneling(Packet* p)
 				debug("tunnling MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
 			}
 			
-			hdrc->size()-=20;
+//			hdrc->size()-=20;
 			
 			Packet* p_tunnel = p->copy();
 			bu->eface()->send(p_tunnel,0);
@@ -2186,7 +2246,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-			hdrc->size()+=20;
+//			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
@@ -2472,9 +2532,10 @@ void MIPV6Agent::tunneling(Packet* p)
 			//	if not then tunnel packet to MN_HA
 			
 			add_tunnel(p);
+			
 //			debug("CN iph->daddr() %s\n", Address::instance().print_nodeaddr(iph->daddr()));
 			BUEntry* bu = get_entry_by_caddr(iph->daddr());
-			if(!bu)
+			if(!bu && mn_flag==0)
 			{
 				//	send packet to MN_HA
 				//bu =  bulist_head_.lh_first;
@@ -2484,6 +2545,10 @@ void MIPV6Agent::tunneling(Packet* p)
 				
 				nh->haddr()=bu->haddr();
 				nh->coa()=addr();
+				if( exp_mr_==9 )
+				{
+					mn_flag=1;
+				}
 			} else {
 				//	add tunnel and set addr to MN caddr
 				//	add tunnel and send packet to MN_HA
@@ -2491,6 +2556,26 @@ void MIPV6Agent::tunneling(Packet* p)
 //				iph->daddr()=bu->caddr();
 //				iph->dport()=port();
 //				add_tunnel(p);
+				if( exp_mr_==9 )
+				{
+					
+					BUEntry* bu = get_entry_by_type(MN);
+					delete_tunnel(p);
+					iph->daddr()=bu->caddr();
+					add_tunnel(p);
+											
+					iph->daddr()=bu->addr();
+					iph->dport()=port();
+
+					nh->haddr()=bu->haddr();
+					nh->coa()=addr();
+					Packet* p_tunnel = p->copy();
+					send(p_tunnel,0);
+
+					debug("At %f MIPv6 MN_CN Agent in %s tunnel packet to %s\n", 
+							NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
+					return;
+				}
 				iph->daddr()=bu->addr();
 				iph->dport()=port();
 				
@@ -2696,13 +2781,18 @@ int MIPV6Agent::compute_new_address (int prefix, Node *interface)
   char *os = Address::instance().print_nodeaddr(old_address);
   char *ns = Address::instance().print_nodeaddr(new_address);
   char *ps = Address::instance().print_nodeaddr(prefix);
+  char *mr_bs = Address::instance().print_nodeaddr(mr_bs_daddr);
   debug ("\told address: %s, prefix=%s, new address will be %s\n", os, ps, ns);
 
   //update the new address in the node
   tcl.evalf ("%s addr %s", interface->name(), ns);
   tcl.evalf ("[%s set ragent_] addr %s", interface->name(), ns);
-  if(mr_bs_daddr==-1)
+  if(mr_bs_daddr!=-1) {
+	  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),mr_bs);  
+  } else {
 	  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),ps);  
+  	}
+	 
   //if I update the address, then I also need to update the local route...
   
   delete []os;
@@ -3112,4 +3202,50 @@ void MIPV6Agent::re_homing(Node *iface)
 //	Tcl& tcl = Tcl::instance();
 //	tcl.evalf("%s target [%s entry]", this->name(), bu_new->eface()->get_iface()->name());
 	//}
+}
+
+void MIPV6Agent::mn_send_bu_cn()
+{
+	BUEntry* bu_cn = get_entry_by_type(MN);
+	
+	if(bu_cn==NULL)
+		return;
+	
+	BUEntry* bu = get_entry_by_type(MN_HA);
+	
+	Packet *p = allocpkt();
+	hdr_ip *iph= HDR_IP(p);
+	hdr_cmn *hdrc= HDR_CMN(p);
+	hdr_nemo *nh= HDR_NEMO(p);
+	
+	nh->coa() = bu->caddr();
+	nh->haddr() = bu->haddr();	
+	nh->H()=ON;
+	nh->A()=ON;
+	nh->type()=BU_MN;
+	nh->lifetime()=TIME_INFINITY;
+	
+	iph->saddr() = bu->caddr();
+	iph->daddr()= bu_cn->caddr();
+	iph->dport() = port();
+	hdrc->ptype() = PT_NEMO;
+	hdrc->size() = IPv6_HEADER_SIZE + BU_SIZE;
+	
+	int prefix = bu->caddr() & 0xFFFFF800;
+	debug ("prefix=%s \n", Address::instance().print_nodeaddr(prefix));
+				
+	add_tunnel(p);				
+	iph->daddr() = prefix;
+
+	if(mr_bs_daddr!=-1)
+	{
+		add_tunnel(p);
+		iph->daddr() = mr_bs_daddr;
+		debug("MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
+	}
+
+	bu->eface()->send(p,0);
+	
+	debug("At %f MIPv6 MN in %s send BU_MN to %s\n", 
+			NOW, MYNUM, Address::instance().print_nodeaddr(iph->daddr()));
 }
