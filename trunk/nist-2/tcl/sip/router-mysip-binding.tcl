@@ -997,7 +997,7 @@ $nd_iface0_mr_bs2 set-router TRUE
 $nd_iface0_mr_bs2 set-mr-bs TRUE
 $nd_iface0_mr_bs2 router-lifetime 18
 $ns at 15 "$nd_iface0_mr_bs2 start-ra"
-$ns at 71.1 "$nd_iface0_mr_bs2 send-ads"
+$ns at 71.2 "$nd_iface0_mr_bs2 send-ads"
 
 set nd_mface0_mr_bs2 [$mface0_mr_bs2 install-nd]
 $nd_mface0_mr_bs2 set-mr-bs TRUE
