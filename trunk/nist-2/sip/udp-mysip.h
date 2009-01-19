@@ -219,6 +219,11 @@ public:
 	void mr_send_reinvite_to_cn(Packet* p);
 	SIPEntry* get_mr_ha_entry_active();
 	
+	//-----------binding---------
+	void set_mr_bs(int daddr);
+	void mn_send_bu_cn();
+	void mn_update_binding(int new_addr);
+	
 	
 protected:
 	int support_mm_; // set to 1 if above is mysipApp
