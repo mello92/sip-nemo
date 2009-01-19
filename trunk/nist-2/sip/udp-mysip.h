@@ -223,6 +223,9 @@ public:
 	void set_mr_bs(int daddr);
 	void mn_send_bu_cn();
 	void mn_update_binding(int new_addr);
+	void mr_send_eface_refer(int daddr);
+	void mr_recv_refer_send_reinvite_to_cn(Packet* p);
+	void mr_ha_recv_refer_send_to_mr(Packet* p);
 	
 	
 protected:
