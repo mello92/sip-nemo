@@ -741,11 +741,14 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 		
 	//----------------sem start------------------//
 	printf("MIPv6Agent::process_new_prefix\n");
-	compute_new_address (data->prefix, data->interface);
+	int new_addr = compute_new_address (data->prefix, data->interface);
 	if(udpmysip_!=0 )
 	{
 		printf("sip enable\n");
+		udpmysip_->set_mr_bs(data->bs_addr);
+		udpmysip_->mn_update_binding(new_addr);
 		udpmysip_->send_reg_msg(data->prefix, data->interface);
+		udpmysip_->mn_send_bu_cn();
 	}
 	else	 
 	{

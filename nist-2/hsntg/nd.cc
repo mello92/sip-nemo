@@ -255,6 +255,12 @@ int NDAgent::command(int argc, const char*const* argv)
       dump_table ();
       return TCL_OK;
     }
+    //-----------------sem start------------------
+    else if (strcmp(argv[1], "send-ads") == 0) {
+    		send_ads(IP_BROADCAST);
+    		return TCL_OK;
+        }
+    //-----------------sem end------------------
   }
   if (argc == 3) {
     // set the Minimum interval between two RAs
