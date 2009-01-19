@@ -748,6 +748,7 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 		udpmysip_->set_mr_bs(data->bs_addr);
 		udpmysip_->mn_update_binding(new_addr);
 		udpmysip_->send_reg_msg(data->prefix, data->interface);
+		if(udpmysip_->exp_mr_==1)
 		udpmysip_->mn_send_bu_cn();
 	}
 	else	 
