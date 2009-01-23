@@ -45,7 +45,7 @@ Agent/MIHUser/IFMNGMT/MIPV6 set exp_ 4
 
 Agent/MIHUser/IFMNGMT/MIPV6 set exp_mr_ 9	
 
-Agent/UDP/Udpmysip set exp_mr_ 1
+Agent/UDP/Udpmysip set exp_mr_ 2
 
 # seed the default RNG
 global defaultRNG

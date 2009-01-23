@@ -797,7 +797,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 				cn->insert_entry(&siplist_head_);
 				dump();
 			}			
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 			debug("At %f UdpmysipAgent MN in %s recv invite packet\n", NOW, MYNUM);
 		}
 		if(mh->method==1)
@@ -807,7 +807,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==7)
 		{
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 		}
 		if(mh->method==6)
 		{
@@ -857,7 +857,7 @@ void UdpmysipAgent::recv(Packet* p, Handler*)
 		}
 		if(mh->method==7)
 		{
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 		}
 		if(mh->method==9)
 		{
