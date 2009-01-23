@@ -737,6 +737,8 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 		
 		debug("At %f MIPv6 Agent in %s recv new prefix from %s \n", 
 				NOW, MYNUM, Address::instance().print_nodeaddr(data->bs_addr));
+		
+	if(exp_mr_==9)
 		mr_bs_daddr = data->bs_addr;
 		
 	//----------------sem start------------------//
@@ -745,11 +747,16 @@ void MIPV6Agent::process_new_prefix(new_prefix* data) {
 	if(udpmysip_!=0 )
 	{
 		printf("sip enable\n");
-		udpmysip_->set_mr_bs(data->bs_addr);
-		udpmysip_->mn_update_binding(new_addr);
+		if(udpmysip_->exp_mr_==3)
+		{
+			udpmysip_->set_mr_bs(data->bs_addr);
+			udpmysip_->mn_update_binding(new_addr);
+		}
+		
 		udpmysip_->send_reg_msg(data->prefix, data->interface);
-		if(udpmysip_->exp_mr_==1)
-		udpmysip_->mn_send_bu_cn();
+		
+		if(udpmysip_->exp_mr_==2)
+			udpmysip_->mn_send_bu_cn();
 	}
 	else	 
 	{
@@ -2173,7 +2180,7 @@ void MIPV6Agent::tunneling(Packet* p)
 				debug("tunnling MR_BS daddr %s\n", Address::instance().print_nodeaddr(iph->daddr()));
 			}
 			
-//			hdrc->size()-=20;
+			hdrc->size()-=20;
 			
 			Packet* p_tunnel = p->copy();
 			bu->eface()->send(p_tunnel,0);
@@ -2250,7 +2257,7 @@ void MIPV6Agent::tunneling(Packet* p)
 			debug("At %f MIPv6 MN Agent in %s recv tunnel packet\n", NOW, MYNUM);
 			
 			
-//			hdrc->size()+=20;
+			hdrc->size()+=20;
 			iph->daddr()=addr();
 					
 			Packet* p_untunnel = p->copy();
@@ -2791,11 +2798,21 @@ int MIPV6Agent::compute_new_address (int prefix, Node *interface)
   //update the new address in the node
   tcl.evalf ("%s addr %s", interface->name(), ns);
   tcl.evalf ("[%s set ragent_] addr %s", interface->name(), ns);
-  if(mr_bs_daddr!=-1) {
-	  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),mr_bs);  
+  if(exp_mr_==9){
+	  
+	  if(mr_bs_daddr!=-1) {
+		  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),mr_bs); 
+		  debug("compute_new_address set mr_bs %s \n", mr_bs);
+	  } else {
+		  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),ps);  
+		  debug("compute_new_address set ps %s \n", ps);
+	      }
+	  
   } else {
-	  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),ps);  
-  	}
+	  
+	  if(mr_bs_daddr==-1)
+		  tcl.evalf ("%s base-station [AddrParams addr2id %s]",interface->name(),ps);  
+     }
 	 
   //if I update the address, then I also need to update the local route...
   
