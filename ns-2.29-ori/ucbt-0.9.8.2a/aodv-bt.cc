@@ -1,6 +1,6 @@
 /*
 Copyright (c) 1997, 1998 Carnegie Mellon University.  All Rights
-Reserved. 
+Reserved.
 
 Permission to use, copy, modify, and distribute this
 software and its documentation is hereby granted (including for
@@ -32,7 +32,7 @@ The AODV code developed by the CMU/MONARCH group was optimized and tuned by Sami
 
 
 /*
- *  This code is derived from aodv/aodv.cc and aodv/aodv_logs.cc.  
+ *  This code is derived from aodv/aodv.cc and aodv/aodv_logs.cc.
  *
  *  The modification mainly changes some defines to class members so they can
  *  be changed.  Also 'ifqueue' is removed.	-qw
@@ -56,7 +56,7 @@ The AODV code developed by the CMU/MONARCH group was optimized and tuned by Sami
 
 static class AODV_BTclass:public TclClass {
   public:
-    AODV_BTclass():TclClass("Agent/AODV/BT") {} 
+    AODV_BTclass():TclClass("Agent/AODV/BT") {}
 
     TclObject *create(int argc, const char *const *argv) {
 	assert(argc == 5);
@@ -155,12 +155,12 @@ struct hdr_aodv_reply *rp = HDR_AODV_REPLY(p);
 aodv_rt_entry *rt;
 char suppress_reply = 0;
 double delay = 0.0;
-                                                                                
+
 #ifdef DEBUG
 // fprintf(stderr, "%d - %s: received a REPLY\n", index, __FUNCTION__);
 #endif // DEBUG
-                                                                                
-                                                                                
+
+
  /*
   *  Got a reply. So reset the "soft state" maintained for
   *  route requests in the request table. We don't really have
@@ -169,34 +169,34 @@ double delay = 0.0;
   */
  // Note that rp_dst is the dest of the data packets, not the
  // the dest of the reply, which is the src of the data packets.
-                                                                                
+
  rt = rtable.rt_lookup(rp->rp_dst);
-                                                                                
+
  /*
   *  If I don't have a rt entry to this host... adding
   */
  if(rt == 0) {
    rt = rtable.rt_add(rp->rp_dst);
  }
-                                                                                
+
  /*
   * Add a forward route table entry... here I am following
   * Perkins-Royer AODV paper almost literally - SRD 5/99
   */
-                                                                                
+
  if ( (rt->rt_seqno < rp->rp_dst_seqno) ||   // newer route
       ((rt->rt_seqno == rp->rp_dst_seqno) &&
        (rt->rt_hops > rp->rp_hop_count)) ) { // shorter or better route
-                                                                                
+
   // Update the rt entry
   rt_update(rt, rp->rp_dst_seqno, rp->rp_hop_count,
                 rp->rp_src, CURRENT_TIME + rp->rp_lifetime);
-                                                                                
+
   // reset the soft state
   rt->rt_req_cnt = 0;
   rt->rt_req_timeout = 0.0;
   rt->rt_req_last_ttl = rp->rp_hop_count;
-                                                                                
+
 if (ih->daddr() == index) { // If I am the original source
   // Update the route discovery latency statistics
   // rp->rp_timestamp is the time of request origination
@@ -207,7 +207,7 @@ if (ih->daddr() == index) { // If I am the original source
   //end NIST
     // increment indx for next time
     rt->hist_indx = (rt->hist_indx + 1) % MAX_HISTORY;
-                                                                                
+
 // #ifdef BTADDON
             /* begin BT addon */
             if (((BTNode *) node_)->lmp_->rpScheduler) {
@@ -218,9 +218,9 @@ if (ih->daddr() == index) { // If I am the original source
             }
             /* end BT addon */
 // #endif
-                                                                                
+
   }
-                                                                                
+
   /*
    * Send all packets queued in the sendbuffer destined for
    * this destination.
@@ -240,11 +240,11 @@ if (ih->daddr() == index) { // If I am the original source
  else {
   suppress_reply = 1;
  }
-                                                                                
+
  /*
   * If reply is for me, discard it.
   */
-                                                                                
+
 if(ih->daddr() == index || suppress_reply) {
    Packet::free(p);
  }
@@ -263,7 +263,7 @@ aodv_rt_entry *rt0 = rtable.rt_lookup(ih->daddr());
      // Insert the nexthop towards the RREQ source to
      // the precursor list of the RREQ destination
      rt->pc_insert(rt0->rt_nexthop); // nexthop to RREQ source
-                                                                                
+
    }
    else {
    // I don't know how to forward .. drop the reply.
@@ -321,7 +321,7 @@ struct hdr_aodv_error *nre = HDR_AODV_ERROR(rerr);
 		rt->pc_delete();
      	}
    }
- } 
+ }
 
  if (nre->DestCount > 0) {
 #ifdef DEBUG
@@ -345,7 +345,7 @@ nsaddr_t broken_nbr = ch->next_hop_;
 
 #ifndef AODV_LINK_LAYER_DETECTION
  drop(p, DROP_RTR_MAC_CALLBACK);
-#else 
+#else
 
  /*
   * Non-data packets and Broadcast Packets can be dropped.
@@ -363,18 +363,18 @@ nsaddr_t broken_nbr = ch->next_hop_;
   log_link_del(ch->next_hop_);
 
 #ifdef AODV_LOCAL_REPAIR
-  /* if the broken link is closer to the dest than source, 
+  /* if the broken link is closer to the dest than source,
      attempt a local repair. Otherwise, bring down the route. */
 
 
   if (ch->num_forwards() > rt->rt_hops) {
     local_rt_repair(rt, p); // local repair
     // retrieve all the packets in the ifq using this link,
-    // queue the packets for which local repair is done, 
+    // queue the packets for which local repair is done,
     return;
   }
-  else	
-#endif // LOCAL REPAIR	
+  else
+#endif // LOCAL REPAIR
 
   {
     drop(p, DROP_RTR_MAC_CALLBACK);
@@ -383,7 +383,7 @@ nsaddr_t broken_nbr = ch->next_hop_;
     // broken link -Mahesh
 while((p = ifqueue->filter(broken_nbr))) {
      drop(p, DROP_RTR_MAC_CALLBACK);
-    }	
+    }
 */
     node_->flushPkt(broken_nbr);
     nb_delete(broken_nbr);
@@ -396,9 +396,9 @@ while((p = ifqueue->filter(broken_nbr))) {
 // Replace the function in aodv_logs.cc.
 
 // This static const is defined in ../aodv/aodv_logs.cc.  I don't want
-// to touch that file, so define it here too.  Need to syn'd if you 
+// to touch that file, so define it here too.  Need to syn'd if you
 // want to turn verbose on.
-static const int verbose = 0;	
+static const int verbose = 0;
 
 void
 AODV_BT::log_link_broke(Packet *p)
